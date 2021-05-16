@@ -1,4 +1,6 @@
 #include "openvslam/imu/config.h"
+#include "openvslam/data/common.h"
+#include <nlohmann/json.hpp>
 
 namespace openvslam {
 namespace imu {
@@ -19,6 +21,30 @@ config::config(const YAML::Node& yaml_node)
              yaml_node["ns_gyr"].as<double>(),
              yaml_node["rw_acc_bias"].as<double>(),
              yaml_node["rw_gyr_bias"].as<double>()) {}
+
+config::config(const nlohmann::json& json_imu_config)
+    : config(json_imu_config.at("name").get<std::string>(),
+             json_imu_config.at("rate_hz").get<double>(),
+             data::convert_json_to_matrix<Mat44_t>(json_imu_config.at("rel_pose_ic")),
+             json_imu_config.at("ns_acc").get<double>(),
+             json_imu_config.at("ns_gyr").get<double>(),
+             json_imu_config.at("rw_acc_bias").get<double>(),
+             json_imu_config.at("rw_gyr_bias").get<double>()) {
+    update_pose();
+    update_covariance();
+}
+
+nlohmann::json config::to_json() const {
+    nlohmann::json json_imu_config;
+    json_imu_config["name"] = name_;
+    json_imu_config["rate_hz"] = rate_hz_;
+    json_imu_config["rel_pose_ic"] = data::convert_matrix_to_json(rel_pose_ic_);
+    json_imu_config["ns_acc"] = ns_acc_;
+    json_imu_config["ns_gyr"] = ns_gyr_;
+    json_imu_config["rw_acc_bias"] = rw_acc_bias_;
+    json_imu_config["rw_gyr_bias"] = rw_gyr_bias_;
+    return json_imu_config;
+}
 
 std::string config::get_name() const {
     return name_;

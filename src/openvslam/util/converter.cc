@@ -61,5 +61,40 @@ Mat33_t converter::to_skew_symmetric_mat(const Vec3_t& vec) {
     return skew;
 }
 
+Mat33_t converter::normalize_rotation(const Mat33_t& R) {
+    Eigen::Quaterniond q(R);
+    return q.normalized().toRotationMatrix();
+}
+
+Mat33_t converter::exp_so3(const Vec3_t& v) {
+    // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (3)
+    const Mat33_t I = Mat33_t::Identity();
+    const double d_sq = v.squaredNorm();
+    const double d = sqrt(d_sq);
+    const Mat33_t W = to_skew_symmetric_mat(v);
+    const double eps = 1e-4;
+    if (d < eps) {
+        return I + W + 0.5 * W * W;
+    }
+    else {
+        return I + W * std::sin(d) / d + W * W * (1.0 - std::cos(d)) / d_sq;
+    }
+}
+
+Mat33_t converter::right_jacobian_so3(const Vec3_t& v) {
+    // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (8)
+    const Mat33_t I = Mat33_t::Identity();
+    const double d_sq = v.squaredNorm();
+    const double d = sqrt(d_sq);
+    const Mat33_t W = to_skew_symmetric_mat(v);
+    const double eps = 1e-4;
+    if (d < eps) {
+        return I;
+    }
+    else {
+        return I - W * (1.0 - std::cos(d)) / d_sq + W * W * (d - std::sin(d)) / (d_sq * d);
+    }
+}
+
 } // namespace util
 } // namespace openvslam

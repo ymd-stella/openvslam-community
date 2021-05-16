@@ -36,6 +36,15 @@ public:
 
     //! to skew symmetric matrix
     static Mat33_t to_skew_symmetric_mat(const Vec3_t& vec);
+
+    //! normalize rotation
+    static Mat33_t normalize_rotation(const Mat33_t& R);
+
+    //! SO(3) matrix exponential. Mapping from the vector to SO(3) lie group
+    static Mat33_t exp_so3(const Vec3_t& v);
+
+    //! The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (8)
+    static Mat33_t right_jacobian_so3(const Vec3_t& v);
 };
 
 } // namespace util

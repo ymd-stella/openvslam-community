@@ -11,6 +11,15 @@ config::config(const std::string& name, const double rate_hz, const Mat44_t& rel
     update_covariance();
 }
 
+config::config(const YAML::Node& yaml_node)
+    : config(yaml_node["name"].as<std::string>(),
+             yaml_node["rate_hz"].as<unsigned int>(),
+             Mat44_t(yaml_node["rel_pose_ic"].as<std::vector<double>>().data()).transpose(),
+             yaml_node["ns_acc"].as<double>(),
+             yaml_node["ns_gyr"].as<double>(),
+             yaml_node["rw_acc_bias"].as<double>(),
+             yaml_node["rw_gyr_bias"].as<double>()) {}
+
 std::string config::get_name() const {
     return name_;
 }

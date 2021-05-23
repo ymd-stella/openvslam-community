@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -83,6 +84,11 @@ using eigen_alloc_unord_map = std::unordered_map<T, U, std::hash<T>, std::equal_
 
 template<typename T>
 using eigen_alloc_unord_set = std::unordered_set<T, std::hash<T>, std::equal_to<T>, Eigen::aligned_allocator<const T>>;
+
+template<typename T, class... Args>
+std::shared_ptr<T> eigen_alloc_shared(Args&&... args) {
+    return std::allocate_shared<T>(Eigen::aligned_allocator<T>(), std::forward<Args>(args)...);
+}
 
 // vector operators
 

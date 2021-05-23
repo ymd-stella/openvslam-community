@@ -3,6 +3,9 @@
 
 #include <string>
 #include <vector>
+#include <queue>
+#include <memory>
+#include <openvslam/imu/data.h>
 
 class euroc_sequence {
 public:
@@ -21,10 +24,13 @@ public:
 
     std::vector<frame> get_frames() const;
 
+    std::queue<std::shared_ptr<openvslam::imu::data>> get_imu_data() const;
+
 private:
     std::vector<double> timestamps_;
     std::vector<std::string> left_img_file_paths_;
     std::vector<std::string> right_img_file_paths_;
+    std::string seq_dir_path_;
 };
 
 #endif // EXAMPLE_UTIL_EUROC_UTIL_H

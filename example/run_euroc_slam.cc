@@ -44,6 +44,15 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
     // startup the SLAM process
     SLAM.startup();
 
+    if (cfg->imu_config_) {
+        // feed all IMU data
+        auto imu_data = sequence.get_imu_data();
+        while (!imu_data.empty()) {
+            SLAM.feed_IMU_data(imu_data.front());
+            imu_data.pop();
+        }
+    }
+
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
@@ -166,6 +175,15 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
     openvslam::system SLAM(cfg, vocab_file_path);
     // startup the SLAM process
     SLAM.startup();
+
+    if (cfg->imu_config_) {
+        // feed all IMU data
+        auto imu_data = sequence.get_imu_data();
+        while (!imu_data.empty()) {
+            SLAM.feed_IMU_data(imu_data.front());
+            imu_data.pop();
+        }
+    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher

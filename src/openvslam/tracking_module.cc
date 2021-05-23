@@ -204,8 +204,8 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     return cam_pose_wc;
 }
 
-void tracking_module::queue_IMU_data(const imu::data& imu_data) {
-    imu_data_queue_.push_back(imu_data);
+void tracking_module::queue_IMU_data(const std::shared_ptr<imu::data>& imu_data) {
+    imu_data_deque_.push_back(imu_data);
 }
 
 bool tracking_module::request_update_pose(const Mat44_t& pose) {

@@ -115,7 +115,7 @@ public:
     std::shared_ptr<Mat44_t> feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Feed an IMU data to SLAM system
-    void feed_IMU_data(const imu::data& imu_data);
+    void feed_IMU_data(const std::shared_ptr<imu::data>& imu_data);
 
     //-----------------------------------------
     // pose initializing/updating

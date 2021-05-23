@@ -1,0 +1,73 @@
+# EuRoC monocular model
+
+#==============#
+# Camera Model #
+#==============#
+
+Camera.name: "EuRoC monocular"
+Camera.setup: "monocular"
+Camera.model: "perspective"
+
+Camera.fx: 458.654
+Camera.fy: 457.296
+Camera.cx: 367.215
+Camera.cy: 248.375
+
+Camera.k1: -0.28340811
+Camera.k2: 0.07395907
+Camera.p1: 0.00019359
+Camera.p2: 1.76187114e-05
+Camera.k3: 0.0
+
+Camera.fps: 20.0
+Camera.cols: 752
+Camera.rows: 480
+
+Camera.color_order: "Gray"
+
+#================#
+# IMU Parameters #
+#================#
+
+IMU.enabled: true
+IMU.name: "ADIS16448"
+IMU.rel_pose_ic: [0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
+                  0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
+                  -0.0257744366974, 0.00375618835797, 0.999660727178, 0.00981073058949,
+                  0.0, 0.0, 0.0, 1.0]
+IMU.rate_hz: 200
+IMU.ns_gyr: 1.7e-4
+IMU.ns_acc: 2.0000e-3
+IMU.rw_gyr_bias: 1.9393e-05
+IMU.rw_acc_bias: 3.0000e-03
+
+#================#
+# ORB Parameters #
+#================#
+
+Feature.max_num_keypoints: 1000
+Feature.scale_factor: 1.2
+Feature.num_levels: 8
+Feature.ini_fast_threshold: 20
+Feature.min_fast_threshold: 7
+
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+depth_threshold: 35
+
+#===========================#
+# PangolinViewer Parameters #
+#===========================#
+
+PangolinViewer.keyframe_size: 0.07
+PangolinViewer.keyframe_line_width: 1
+PangolinViewer.graph_line_width: 1
+PangolinViewer.point_size: 2
+PangolinViewer.camera_size: 0.08
+PangolinViewer.camera_line_width: 3
+PangolinViewer.viewpoint_x: 0
+PangolinViewer.viewpoint_y: -0.65
+PangolinViewer.viewpoint_z: -1.9
+PangolinViewer.viewpoint_f: 400

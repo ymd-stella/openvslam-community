@@ -3,6 +3,7 @@
 
 #include "openvslam/type.h"
 #include "openvslam/data/frame.h"
+#include "openvslam/imu/data.h"
 #include "openvslam/module/initializer.h"
 #include "openvslam/module/relocalizer.h"
 #include "openvslam/module/keyframe_inserter.h"
@@ -79,6 +80,9 @@ public:
     //! Track an RGBD frame
     //! (Note: RGB and Depth images must be aligned)
     std::shared_ptr<Mat44_t> track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
+
+    //! Queue an IMU data
+    void queue_IMU_data(const imu::data& imu_data);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
@@ -237,6 +241,11 @@ protected:
     //! current camera pose from reference keyframe
     //! (to update last camera pose at the beginning of each tracking)
     Mat44_t last_cam_pose_from_ref_keyfrm_;
+
+    //-----------------------------------------
+    // for visual-inertial tracking
+
+    std::vector<imu::data> imu_data_queue_;
 
     //-----------------------------------------
     // mapping module status

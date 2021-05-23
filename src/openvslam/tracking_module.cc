@@ -204,6 +204,10 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     return cam_pose_wc;
 }
 
+void tracking_module::queue_IMU_data(const imu::data& imu_data) {
+    imu_data_queue_.push_back(imu_data);
+}
+
 bool tracking_module::request_update_pose(const Mat44_t& pose) {
     std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
     if (update_pose_is_requested_) {

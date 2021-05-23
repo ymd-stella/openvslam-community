@@ -286,6 +286,10 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     return cam_pose_wc;
 }
 
+void system::feed_IMU_data(const imu::data& imu_data) {
+    tracker_->queue_IMU_data(imu_data);
+}
+
 bool system::update_pose(const Mat44_t& pose) {
     bool status = tracker_->request_update_pose(pose);
     if (status) {

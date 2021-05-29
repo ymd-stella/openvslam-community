@@ -74,13 +74,13 @@ private:
     Mat44_t rel_pose_ci_;
 
     //! covariance of acceleration sensor [(m/s^2)^2] = [m/s^2/sqrt(Hz)] * [m/s^2/sqrt(Hz)] * [Hz]
-    Mat33_t cov_acc_ = Mat33_t::Identity() ;
+    Mat33_t cov_acc_ = Mat33_t::Identity();
     //! covariance of gyroscope sensor [(rad/s)^2] = [rad/s/sqrt(Hz)] * [rad/s/sqrt(Hz)] * [Hz]
-    Mat33_t cov_gyr_ = Mat33_t::Identity() ;
+    Mat33_t cov_gyr_ = Mat33_t::Identity();
     //! covariance gy acceleration sensor bias [(m/s^3)^2] = [m/s^3/sqrt(Hz)] * [m/s^3/sqrt(Hz)] * [Hz]
-    Mat33_t cov_acc_bias_ = Mat33_t::Identity() ;
+    Mat33_t cov_acc_bias_ = Mat33_t::Identity();
     //! covariance of gyroscope sensor bias [(rad/s^2)^2] = [rad/s^2/sqrt(Hz)] * [rad/s^2/sqrt(Hz)] * [Hz]
-    Mat33_t cov_gyr_bias_ = Mat33_t::Identity() ;
+    Mat33_t cov_gyr_bias_ = Mat33_t::Identity();
 
     //! noise density of acceleration sensor [m/s^2/sqrt(Hz)]
     double ns_acc_;

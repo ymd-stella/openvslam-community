@@ -6,6 +6,11 @@
 #include "openvslam/optimize/internal/se3/shot_vertex_container.h"
 #include "openvslam/optimize/internal/se3/reproj_edge_wrapper.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/imu/internal/velocity_vertex_container.h"
+#include "openvslam/imu/internal/bias_vertex_container.h"
+#include "openvslam/imu/internal/inertial_edge_wrapper.h"
+#include "openvslam/imu/internal/prior_bias_edge_wrapper.h"
+#include "openvslam/imu/preintegrator.h"
 
 #include <g2o/core/solver.h>
 #include <g2o/core/block_solver.h>
@@ -22,7 +27,7 @@ namespace optimize {
 global_bundle_adjuster::global_bundle_adjuster(data::map_database* map_db, const unsigned int num_iter, const bool use_huber_kernel)
     : map_db_(map_db), num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
 
-void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_global_BA, bool* const force_stop_flag) const {
+void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_global_BA, bool* const force_stop_flag, double info_prior_acc, double info_prior_gyr) const {
     // 1. Collect the dataset
 
     const auto keyfrms = map_db_->get_all_keyframes();
@@ -31,8 +36,15 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
 
     // 2. Construct an optimizer
 
-    auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
-    auto block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    std::unique_ptr<g2o::Solver> block_solver;
+    if (enable_inertial_optimization_) {
+        auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolverX::PoseMatrixType>>();
+        block_solver = g2o::make_unique<g2o::BlockSolverX>(std::move(linear_solver));
+    }
+    else {
+        auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
+        block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    }
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
@@ -47,6 +59,9 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     // Container of the shot vertices
     auto vtx_id_offset = std::make_shared<unsigned int>(0);
     internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
+    imu::internal::velocity_vertex_container velocity_vtx_container(vtx_id_offset, keyfrms.size());
+    imu::internal::bias_vertex_container acc_bias_vtx_container(vtx_id_offset, 1);
+    imu::internal::bias_vertex_container gyr_bias_vtx_container(vtx_id_offset, 1);
 
     // Set the keyframes to the optimizer
     for (const auto keyfrm : keyfrms) {
@@ -59,9 +74,83 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
 
         auto keyfrm_vtx = keyfrm_vtx_container.create_vertex(keyfrm, keyfrm->id_ == 0);
         optimizer.addVertex(keyfrm_vtx);
+
+        if (keyfrm->imu_config_) {
+            auto velocity_vtx = velocity_vtx_container.create_vertex(keyfrm, false);
+            optimizer.addVertex(velocity_vtx);
+        }
+
+        if (enable_inertial_optimization_ && !use_shared_bias_) {
+            // TODO
+        }
     }
 
-    // 4. Connect the vertices of the keyframe and the landmark by using reprojection edge
+    if (enable_inertial_optimization_ && use_shared_bias_) {
+        auto acc_bias_vtx = acc_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.acc_, false);
+        optimizer.addVertex(acc_bias_vtx);
+        auto gyr_bias_vtx = gyr_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.gyr_, false);
+        optimizer.addVertex(gyr_bias_vtx);
+
+        // Add prior to shared bias
+        imu::internal::prior_bias_edge_wrapper pba_edge_wrap(info_prior_acc, acc_bias_vtx);
+        optimizer.addEdge(pba_edge_wrap.edge_);
+        imu::internal::prior_bias_edge_wrapper pbg_edge_wrap(info_prior_gyr, gyr_bias_vtx);
+        optimizer.addEdge(pbg_edge_wrap.edge_);
+    }
+
+    // 4.1 Connect the vertices of the keyframe and the imu data
+
+    if (enable_inertial_optimization_) {
+        for (size_t i = 0; i < keyfrms.size(); i++) {
+            auto keyfrm = keyfrms.at(i);
+            if (!keyfrm) {
+                continue;
+            }
+            if (keyfrm->will_be_erased()) {
+                continue;
+            }
+            if (!keyfrm->inertial_ref_keyfrm_) {
+                continue;
+            }
+            assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
+            auto ref_keyfrm = keyfrm->inertial_ref_keyfrm_;
+
+            imu::internal::bias_vertex* acc_bias_vtx1;
+            imu::internal::bias_vertex* gyr_bias_vtx1;
+            imu::internal::bias_vertex* acc_bias_vtx2;
+            imu::internal::bias_vertex* gyr_bias_vtx2;
+            if (use_shared_bias_) {
+                acc_bias_vtx1 = acc_bias_vtx_container.get_vertex(keyfrms.back());
+                gyr_bias_vtx1 = gyr_bias_vtx_container.get_vertex(keyfrms.back());
+            }
+            else {
+                acc_bias_vtx1 = acc_bias_vtx_container.get_vertex(ref_keyfrm);
+                gyr_bias_vtx1 = gyr_bias_vtx_container.get_vertex(ref_keyfrm);
+                acc_bias_vtx2 = acc_bias_vtx_container.get_vertex(keyfrm);
+                gyr_bias_vtx2 = gyr_bias_vtx_container.get_vertex(keyfrm);
+            }
+            auto keyfrm_vtx1 = keyfrm_vtx_container.get_vertex(ref_keyfrm);
+            auto velocity_vtx1 = velocity_vtx_container.get_vertex(ref_keyfrm);
+            auto keyfrm_vtx2 = keyfrm_vtx_container.get_vertex(keyfrm);
+            auto velocity_vtx2 = velocity_vtx_container.get_vertex(keyfrm);
+
+            const bool use_huber_kernel_inertial = true;
+            // Chi-squared value with significance level of 5%
+            // 9 degree-of-freedom (n=9)
+            constexpr float chi_sq = 16.92;
+            const float sqrt_chi_sq = std::sqrt(chi_sq);
+            imu::internal::inertial_edge_wrapper inertial_edge_wrap(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->preintegrated_,
+                                                                    acc_bias_vtx1, gyr_bias_vtx1,
+                                                                    keyfrm_vtx1, velocity_vtx1, keyfrm_vtx2, velocity_vtx2,
+                                                                    sqrt_chi_sq, use_huber_kernel_inertial, keyfrm->imu_config_);
+            if (!use_shared_bias_) {
+                // TODO
+            }
+            optimizer.addEdge(inertial_edge_wrap.edge_);
+        }
+    }
+
+    // 4.2 Connect the vertices of the keyframe and the landmark by using reprojection edge
 
     // Container of the landmark vertices
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
@@ -130,6 +219,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
 
     // 5. Perform optimization
 
+    optimizer.setVerbose(true);
     optimizer.initializeOptimization();
     optimizer.optimize(num_iter_);
 
@@ -151,6 +241,23 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
         else {
             keyfrm->cam_pose_cw_after_loop_BA_ = cam_pose_cw;
             keyfrm->loop_BA_identifier_ = lead_keyfrm_id_in_global_BA;
+        }
+
+        if (enable_inertial_optimization_) {
+            if (keyfrm->inertial_ref_keyfrm_) {
+                auto velocity_vtx = static_cast<imu::internal::velocity_vertex*>(velocity_vtx_container.get_vertex(keyfrm));
+                keyfrm->velocity_ = velocity_vtx->estimate();
+                if (use_shared_bias_) {
+                    auto gyr_bias_vtx = static_cast<imu::internal::bias_vertex*>(gyr_bias_vtx_container.get_vertex(keyfrms.back()));
+                    auto acc_bias_vtx = static_cast<imu::internal::bias_vertex*>(acc_bias_vtx_container.get_vertex(keyfrms.back()));
+                    keyfrm->imu_bias_ = imu::bias(acc_bias_vtx->estimate(), gyr_bias_vtx->estimate());
+                }
+                else {
+                    auto gyr_bias_vtx = static_cast<imu::internal::bias_vertex*>(gyr_bias_vtx_container.get_vertex(keyfrm));
+                    auto acc_bias_vtx = static_cast<imu::internal::bias_vertex*>(acc_bias_vtx_container.get_vertex(keyfrm));
+                    keyfrm->imu_bias_ = imu::bias(acc_bias_vtx->estimate(), gyr_bias_vtx->estimate());
+                }
+            }
         }
     }
 
@@ -179,6 +286,11 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
             lm->loop_BA_identifier_ = lead_keyfrm_id_in_global_BA;
         }
     }
+}
+
+void global_bundle_adjuster::enable_inertial_optimization(bool enabled, bool use_shared_bias) {
+    enable_inertial_optimization_ = enabled;
+    use_shared_bias_ = use_shared_bias;
 }
 
 } // namespace optimize

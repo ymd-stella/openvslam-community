@@ -9,6 +9,7 @@
 #include "openvslam/module/two_view_triangulator.h"
 #include "openvslam/solve/essential_solver.h"
 #include "openvslam/imu/imu_initializer.h"
+#include "openvslam/optimize/global_bundle_adjuster.h"
 #include "openvslam/imu/imu_util.h"
 
 #include <unordered_set>
@@ -212,6 +213,12 @@ void mapping_module::initialize_imu() {
     }
 
     map_db_->apply_scale_and_gravity_direction(Rwg, scale);
+
+    const bool use_huber_kernel = true;
+    const bool use_shared_bias = true;
+    optimize::global_bundle_adjuster global_bundle_adjuster(map_db_, 100, use_huber_kernel);
+    global_bundle_adjuster.enable_inertial_optimization(true, use_shared_bias);
+    global_bundle_adjuster.optimize(0, nullptr, info_prior_acc, info_prior_gyr);
 
     imu_is_initialized_ = true;
     spdlog::info("imu initialized");

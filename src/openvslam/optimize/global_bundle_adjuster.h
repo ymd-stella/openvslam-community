@@ -28,8 +28,13 @@ public:
      * Perform optimization
      * @param lead_keyfrm_id_in_global_BA
      * @param force_stop_flag
+     * @param info_prior_acc
+     * @param info_prior_gyr
      */
-    void optimize(const unsigned int lead_keyfrm_id_in_global_BA = 0, bool* const force_stop_flag = nullptr) const;
+    void optimize(const unsigned int lead_keyfrm_id_in_global_BA = 0, bool* const force_stop_flag = nullptr,
+                  double info_prior_acc = 0.0, double info_prior_gyr = 0.0) const;
+
+    void enable_inertial_optimization(bool enable, bool use_shared_bias = false);
 
 private:
     //! map database
@@ -40,6 +45,12 @@ private:
 
     //! use Huber loss or not
     const bool use_huber_kernel_;
+
+    //! use shared bias or not
+    bool use_shared_bias_;
+
+    //! enable inertial optimization or not
+    bool enable_inertial_optimization_;
 };
 
 } // namespace optimize

@@ -9,6 +9,7 @@
 #include "openvslam/module/keyframe_inserter.h"
 #include "openvslam/module/frame_tracker.h"
 
+#include <deque>
 #include <mutex>
 
 #include <opencv2/core/core.hpp>
@@ -82,7 +83,7 @@ public:
     std::shared_ptr<Mat44_t> track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Queue an IMU data
-    void queue_IMU_data(const imu::data& imu_data);
+    void queue_IMU_data(const std::shared_ptr<imu::data>& imu_data);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
@@ -243,7 +244,7 @@ protected:
     //-----------------------------------------
     // for visual-inertial tracking
 
-    std::vector<imu::data> imu_data_queue_;
+    std::deque<std::shared_ptr<imu::data>> imu_data_deque_;
 
     //-----------------------------------------
     // mapping module status

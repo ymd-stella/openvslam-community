@@ -43,7 +43,16 @@ public:
     //! SO(3) matrix exponential. Mapping from the vector to SO(3) lie group
     static Mat33_t exp_so3(const Vec3_t& v);
 
-    //! The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (8)
+    //! Vector portion of skew-symmetric
+    static Vec3_t vee(const Mat33_t& R);
+
+    //! SO(3) matrix logarithm
+    static Vec3_t log_so3(const Mat33_t& R);
+
+    //! Inverse matrix of right jacobian
+    static Mat33_t inverse_right_jacobian_so3(const Vec3_t& v);
+
+    //! Right jacobian. The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (8)
     static Mat33_t right_jacobian_so3(const Vec3_t& v);
 };
 

@@ -112,6 +112,30 @@ inline Vec2_t operator-(const cv::Point_<T>& v1, const Vec2_t& v2) {
     return v1 + (-v2);
 }
 
+template<typename Scalar, int rows, int cols>
+bool read_matrix(std::istream& is, Eigen::Matrix<Scalar, rows, cols>& mat) {
+    static_assert(rows > 0);
+    static_assert(cols > 0);
+    for (unsigned int i = 0; i < rows; ++i) {
+        for (unsigned int j = 0; j < cols; ++j) {
+            is >> mat(i, j);
+        }
+    }
+    return true;
+}
+
+template<typename Scalar, int rows, int cols>
+bool write_matrix(std::ostream& os, const Eigen::Matrix<Scalar, rows, cols>& mat) {
+    static_assert(rows > 0);
+    static_assert(cols > 0);
+    for (unsigned int i = 0; i < rows; ++i) {
+        for (unsigned int j = 0; j < cols; ++j) {
+            os << mat(i, j) << " ";
+        }
+    }
+    return os.good();
+}
+
 } // namespace openvslam
 
 #endif // OPENVSLAM_TYPE_H

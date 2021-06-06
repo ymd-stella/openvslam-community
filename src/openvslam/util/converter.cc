@@ -1,5 +1,12 @@
 #include "openvslam/util/converter.h"
 
+namespace {
+template<typename T>
+T clamp(const T& n, const T& lower, const T& upper) {
+    return std::max(lower, std::min(n, upper));
+}
+} // namespace
+
 namespace openvslam {
 namespace util {
 
@@ -66,6 +73,10 @@ Mat33_t converter::normalize_rotation(const Mat33_t& R) {
     return q.normalized().toRotationMatrix();
 }
 
+Vec3_t converter::vee(const Mat33_t& R) {
+    return Vec3_t(R(2, 1), R(0, 2), R(1, 0));
+}
+
 Mat33_t converter::exp_so3(const Vec3_t& v) {
     // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (3)
     const Mat33_t I = Mat33_t::Identity();
@@ -81,11 +92,37 @@ Mat33_t converter::exp_so3(const Vec3_t& v) {
     }
 }
 
+Vec3_t converter::log_so3(const Mat33_t& R) {
+    const double theta = std::acos(clamp((R.trace() - 1.0) * 0.5, -1.0, 1.0));
+    const double sin_theta = std::sin(theta);
+    const double eps = 1e-4;
+    if (std::abs(sin_theta) < eps) {
+        return vee(R - R.transpose()) / 2.0;
+    }
+    else {
+        return vee(R - R.transpose()) * theta / (2.0 * sin_theta);
+    }
+}
+
+Mat33_t converter::inverse_right_jacobian_so3(const Vec3_t& v) {
+    const Mat33_t I = Mat33_t::Identity();
+    const double d_sq = v.squaredNorm();
+    const double d = std::sqrt(d_sq);
+    const Mat33_t W = to_skew_symmetric_mat(v);
+    const double eps = 1e-4;
+    if (d < eps) {
+        return I;
+    }
+    else {
+        return I + W / 2.0 + W * W * (1.0 / d_sq - (1.0 + std::cos(d)) / (2.0 * d * std::sin(d)));
+    }
+}
+
 Mat33_t converter::right_jacobian_so3(const Vec3_t& v) {
     // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", (8)
     const Mat33_t I = Mat33_t::Identity();
     const double d_sq = v.squaredNorm();
-    const double d = sqrt(d_sq);
+    const double d = std::sqrt(d_sq);
     const Mat33_t W = to_skew_symmetric_mat(v);
     const double eps = 1e-4;
     if (d < eps) {

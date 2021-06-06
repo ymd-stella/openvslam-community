@@ -1,0 +1,71 @@
+# TUM VI monocular model
+# https://vision.in.tum.de/data/datasets/visual-inertial-dataset#geometric_calibration
+# pinhole (512x512)
+
+#==============#
+# Camera Model #
+#==============#
+
+Camera:
+  name: "TUM VI monocular"
+  setup: "monocular"
+  model: "fisheye"
+
+  fx: 190.97847715128717
+  fy: 190.9733070521226
+  cx: 254.93170605935475
+  cy: 256.8974428996504
+
+  k1: 0.0034823894022493434
+  k2: 0.0007150348452162257
+  k3: -0.0020532361418706202
+  k4: 0.00020293673591811182
+
+  fps: 20
+  cols: 512
+  rows: 512
+
+  color_order: "Gray"
+
+#================#
+# IMU Parameters #
+#================#
+
+IMU:
+  enabled: true
+  name: "TUM VI IMU"
+  rel_pose_ic: [-0.9995250378696743, 0.029615343885863205, -0.008522328211654736, 0.04727988224914392,
+                0.0075019185074052044, -0.03439736061393144, -0.9993800792498829, -0.047443232143367084,
+                -0.02989013031643309, -0.998969345370175, 0.03415885127385616, -0.0681999605066297,
+                0.0, 0.0, 0.0, 1.0]
+  rate_hz: 200
+  ns_gyr: 0.00016
+  ns_acc: 0.0028
+  rw_gyr_bias: 2.2e-05
+  rw_acc_bias: 0.00086
+
+#================#
+# ORB Parameters #
+#================#
+
+Feature:
+  max_num_keypoints: 1000
+  ini_max_num_keypoints: 2000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_fast_threshold: 20
+  min_fast_threshold: 7
+
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr_ratio: 0.02
+
+#========================#
+# Initializer Parameters #
+#========================#
+
+Initializer:
+  scaling_factor: 2.0

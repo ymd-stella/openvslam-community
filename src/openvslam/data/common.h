@@ -5,7 +5,7 @@
 #include "openvslam/camera/base.h"
 
 #include <opencv2/core.hpp>
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 namespace openvslam {
 namespace data {
@@ -17,6 +17,22 @@ Mat33_t convert_json_to_rotation(const nlohmann::json& json_rot_cw);
 nlohmann::json convert_translation_to_json(const Vec3_t& trans_cw);
 
 Vec3_t convert_json_to_translation(const nlohmann::json& json_trans_cw);
+
+template<typename Matrix>
+nlohmann::json convert_matrix_to_json(const Matrix& mat) {
+    nlohmann::json data;
+    for (unsigned int i = 0; i < mat.rows(); ++i) {
+        for (unsigned int j = 0; j < mat.cols(); ++j) {
+            data.emplace_back(mat(i, j));
+        }
+    }
+    return data;
+}
+
+template<typename Matrix>
+Matrix convert_json_to_matrix(const nlohmann::json& json_mat) {
+    return Matrix(json_mat.get<std::vector<double>>().data());
+}
 
 nlohmann::json convert_keypoints_to_json(const std::vector<cv::KeyPoint>& keypts);
 

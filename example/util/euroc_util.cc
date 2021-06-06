@@ -1,4 +1,5 @@
 #include "euroc_util.h"
+#include <openvslam/type.h>
 
 #include <fstream>
 #include <sstream>
@@ -80,7 +81,7 @@ std::queue<std::shared_ptr<openvslam::imu::data>> euroc_sequence::get_imu_data()
             double wx, wy, wz, ax, ay, az;
             ss >> timestamp_nsec >> wx >> wy >> wz >> ax >> ay >> az;
             double timestamp = timestamp_nsec / static_cast<double>(1E9);
-            imu_data.push(std::make_shared<openvslam::imu::data>(ax, ay, az, wx, wy, wz, timestamp));
+            imu_data.push(openvslam::eigen_alloc_shared<openvslam::imu::data>(ax, ay, az, wx, wy, wz, timestamp));
         }
     }
 

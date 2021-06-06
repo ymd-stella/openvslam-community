@@ -3,6 +3,7 @@
 
 #include "openvslam/type.h"
 #include <yaml-cpp/yaml.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace openvslam {
 namespace imu {
@@ -15,6 +16,12 @@ public:
     config(const std::string& name, const double rate_hz, const Mat44_t& rel_pose_ic,
            const double ns_acc, const double ns_gyr, const double rw_acc_bias, const double rw_gyr_bias);
     explicit config(const YAML::Node& yaml_node);
+
+    //! Create IMU config from json
+    explicit config(const nlohmann::json& json_cameras);
+
+    //! Create json from IMU config
+    nlohmann::json to_json() const;
 
     //---------------------------
     // Setters and Getters

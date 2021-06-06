@@ -4,6 +4,7 @@
 #include "openvslam/camera/equirectangular.h"
 #include "openvslam/camera/radial_division.h"
 #include "openvslam/util/string.h"
+#include "openvslam/util/yaml.h"
 
 #include <iostream>
 #include <memory>
@@ -65,15 +66,8 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
     //=====================//
     // Load IMU Parameters //
     //=====================//
-    if (yaml_node_["IMU.enabled"].as<bool>(false)) {
-        imu_config_ = std::make_shared<imu::config>(
-            yaml_node_["IMU.name"].as<std::string>(),
-            yaml_node_["IMU.rate_hz"].as<unsigned int>(),
-            Mat44_t(yaml_node_["IMU.rel_pose_ic"].as<std::vector<double>>().data()).transpose(),
-            yaml_node_["IMU.ns_acc"].as<double>(),
-            yaml_node_["IMU.ns_gyr"].as<double>(),
-            yaml_node_["IMU.rw_acc_bias"].as<double>(),
-            yaml_node_["IMU.rw_gyr_bias"].as<double>());
+    if (util::yaml_optional_ref(yaml_node_, "IMU")["enabled"].as<bool>(false)) {
+        imu_config_ = eigen_alloc_shared<imu::config>(util::yaml_optional_ref(yaml_node_, "IMU"));
     }
 }
 

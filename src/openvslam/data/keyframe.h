@@ -291,6 +291,14 @@ public:
     //! list of 1 / sigma^2 for optimization
     const std::vector<float> inv_level_sigma_sq_;
 
+    //-----------------------------------------
+    // imu information
+    //! inertial reference keyframe
+    keyframe* inertial_ref_keyfrm_ = nullptr;
+
+    //! inertial referrer keyframe
+    keyframe* inertial_referrer_keyfrm_ = nullptr;
+
 private:
     //-----------------------------------------
     // camera pose

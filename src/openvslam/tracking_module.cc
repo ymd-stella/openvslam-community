@@ -297,6 +297,7 @@ void tracking_module::track() {
 
         // set the reference keyframe of the current frame
         curr_frm_.ref_keyfrm_ = last_frm_.ref_keyfrm_;
+        curr_frm_.inertial_ref_keyfrm_ = last_frm_.inertial_ref_keyfrm_;
 
         auto succeeded = track_current_frame();
 
@@ -624,10 +625,17 @@ bool tracking_module::new_keyframe_is_needed() const {
 void tracking_module::insert_new_keyframe() {
     // insert the new keyframe
     const auto ref_keyfrm = keyfrm_inserter_.insert_new_keyframe(curr_frm_);
-    // set the reference keyframe with the new keyframe
-    if (ref_keyfrm) {
-        curr_frm_.ref_keyfrm_ = ref_keyfrm;
+    if (!ref_keyfrm) {
+        return;
     }
+
+    // set the reference keyframe with the new keyframe
+    curr_frm_.ref_keyfrm_ = ref_keyfrm;
+    // set the inertial reference keyframe of ref_keyfrm_ with the last inertial reference keyframe
+    ref_keyfrm->inertial_ref_keyfrm_ = curr_frm_.inertial_ref_keyfrm_;
+    ref_keyfrm->inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = ref_keyfrm;
+    // set new inertial reference keyframe
+    curr_frm_.inertial_ref_keyfrm_ = ref_keyfrm;
 }
 
 void tracking_module::request_pause() {

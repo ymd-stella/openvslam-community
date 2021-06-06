@@ -422,6 +422,12 @@ void keyframe::prepare_for_erasing() {
     // recover spanning tree
     graph_node_->recover_spanning_connections();
 
+    // update inertial references
+    if (inertial_referrer_keyfrm_ && inertial_ref_keyfrm_) {
+        inertial_referrer_keyfrm_->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
+        inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = inertial_referrer_keyfrm_;
+    }
+
     // 3. update frame statistics
 
     map_db_->replace_reference_keyframe(this, graph_node_->get_spanning_parent());

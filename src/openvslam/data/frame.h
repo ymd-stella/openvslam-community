@@ -239,6 +239,10 @@ public:
     //! reference keyframe for tracking
     keyframe* ref_keyfrm_ = nullptr;
 
+    // imu information
+    //! inertial reference keyframe
+    keyframe* inertial_ref_keyfrm_ = nullptr;
+
     // ORB scale pyramid information
     //! number of scale levels
     unsigned int num_scale_levels_;

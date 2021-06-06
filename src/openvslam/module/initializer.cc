@@ -205,6 +205,12 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
     map_db_->update_frame_statistics(init_frm_, false);
     map_db_->update_frame_statistics(curr_frm, false);
 
+    // update inertial references
+    init_frm_.inertial_ref_keyfrm_ = init_keyfrm;
+    curr_frm.inertial_ref_keyfrm_ = init_keyfrm;
+    init_keyfrm->inertial_referrer_keyfrm_ = curr_keyfrm;
+    curr_keyfrm->inertial_ref_keyfrm_ = init_keyfrm;
+
     // assign 2D-3D associations
     for (unsigned int init_idx = 0; init_idx < init_matches_.size(); init_idx++) {
         const auto curr_idx = init_matches_.at(init_idx);
@@ -300,6 +306,7 @@ bool initializer::create_map_for_stereo(data::frame& curr_frm) {
 
     // update the frame statistics
     curr_frm.ref_keyfrm_ = curr_keyfrm;
+    curr_frm.inertial_ref_keyfrm_ = curr_keyfrm;
     map_db_->update_frame_statistics(curr_frm, false);
 
     for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {

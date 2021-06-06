@@ -1,8 +1,11 @@
 #ifndef OPENVSLAM_CONFIG_H
 #define OPENVSLAM_CONFIG_H
 
+#include <memory>
+
 #include "openvslam/camera/base.h"
 #include "openvslam/feature/orb_params.h"
+#include "openvslam/imu/config.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -27,6 +30,9 @@ public:
 
     //! Camera model
     camera::base* camera_ = nullptr;
+
+    //! IMU config
+    std::shared_ptr<imu::config> imu_config_ = nullptr;
 };
 
 } // namespace openvslam

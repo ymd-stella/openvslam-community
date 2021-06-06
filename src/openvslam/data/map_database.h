@@ -16,6 +16,10 @@ namespace camera {
 class base;
 } // namespace camera
 
+namespace imu {
+class imu_database;
+} // namespace imu
+
 namespace data {
 
 class frame;
@@ -155,7 +159,8 @@ public:
      * @param json_keyfrms
      * @param json_landmarks
      */
-    void from_json(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void from_json(camera_database* cam_db, imu::imu_database* imu_db,
+                   bow_vocabulary* bow_vocab, bow_database* bow_db,
                    const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
 
     /**
@@ -182,7 +187,8 @@ private:
      * @param id
      * @param json_keyfrm
      */
-    void register_keyframe(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void register_keyframe(camera_database* cam_db, imu::imu_database* imu_db,
+                           bow_vocabulary* bow_vocab, bow_database* bow_db,
                            const unsigned int id, const nlohmann::json& json_keyfrm);
 
     /**

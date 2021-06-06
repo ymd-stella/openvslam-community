@@ -29,6 +29,10 @@ class map_database;
 class bow_database;
 } // namespace data
 
+namespace imu {
+class imu_database;
+} // namespace imu
+
 namespace publish {
 class map_publisher;
 class frame_publisher;
@@ -171,6 +175,9 @@ private:
 
     //! camera database
     data::camera_database* cam_db_ = nullptr;
+
+    //! imu database
+    imu::imu_database* imu_db_ = nullptr;
 
     //! map database
     data::map_database* map_db_ = nullptr;

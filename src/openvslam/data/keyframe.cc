@@ -121,28 +121,45 @@ nlohmann::json keyframe::to_json() const {
         loop_edge_ids.push_back(loop_edge->id_);
     }
 
-    return {{"src_frm_id", src_frm_id_},
-            {"ts", timestamp_},
-            {"cam", camera_->name_},
-            {"depth_thr", depth_thr_},
-            // camera pose
-            {"rot_cw", convert_rotation_to_json(cam_pose_cw_.block<3, 3>(0, 0))},
-            {"trans_cw", convert_translation_to_json(cam_pose_cw_.block<3, 1>(0, 3))},
-            // features and observations
-            {"n_keypts", num_keypts_},
-            {"keypts", convert_keypoints_to_json(keypts_)},
-            {"undists", convert_undistorted_to_json(undist_keypts_)},
-            {"x_rights", stereo_x_right_},
-            {"depths", depths_},
-            {"descs", convert_descriptors_to_json(descriptors_)},
-            {"lm_ids", landmark_ids},
-            // orb scale information
-            {"n_scale_levels", num_scale_levels_},
-            {"scale_factor", scale_factor_},
-            // graph information
-            {"span_parent", spanning_parent ? spanning_parent->id_ : -1},
-            {"span_children", spanning_child_ids},
-            {"loop_edges", loop_edge_ids}};
+    nlohmann::json j{
+        {"src_frm_id", src_frm_id_},
+        {"ts", timestamp_},
+        {"cam", camera_->name_},
+        {"depth_thr", depth_thr_},
+        // camera pose
+        {"rot_cw", convert_rotation_to_json(cam_pose_cw_.block<3, 3>(0, 0))},
+        {"trans_cw", convert_translation_to_json(cam_pose_cw_.block<3, 1>(0, 3))},
+        // features and observations
+        {"n_keypts", num_keypts_},
+        {"keypts", convert_keypoints_to_json(keypts_)},
+        {"undists", convert_undistorted_to_json(undist_keypts_)},
+        {"x_rights", stereo_x_right_},
+        {"depths", depths_},
+        {"descs", convert_descriptors_to_json(descriptors_)},
+        {"lm_ids", landmark_ids},
+        // orb scale information
+        {"n_scale_levels", num_scale_levels_},
+        {"scale_factor", scale_factor_},
+        // graph information
+        {"span_parent", spanning_parent ? spanning_parent->id_ : -1},
+        {"span_children", spanning_child_ids},
+        {"loop_edges", loop_edge_ids}};
+    // imu information
+    if (inertial_ref_keyfrm_) {
+        j["inertial_ref_keyfrm"] = inertial_ref_keyfrm_->id_;
+    }
+    if (inertial_referrer_keyfrm_) {
+        j["inertial_referrer_keyfrm"] = inertial_referrer_keyfrm_->id_;
+    }
+    if (imu_preintegrator_from_inertial_ref_keyfrm_) {
+        j["imu_preintegrator_from_inertial_ref_keyfrm"] = imu_preintegrator_from_inertial_ref_keyfrm_->to_json();
+    }
+    j["velocity"] = convert_matrix_to_json(velocity_);
+    j["imu_bias"] = imu_bias_.to_json();
+    if (imu_config_) {
+        j["imu_config"] = imu_config_->get_name();
+    }
+    return j;
 }
 
 void keyframe::set_cam_pose(const Mat44_t& cam_pose_cw) {

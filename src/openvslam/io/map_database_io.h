@@ -13,6 +13,10 @@ class bow_database;
 class map_database;
 } // namespace data
 
+namespace imu {
+class imu_database;
+} // namespace imu
+
 namespace io {
 
 class map_database_io {
@@ -20,7 +24,7 @@ public:
     /**
      * Constructor
      */
-    map_database_io(data::camera_database* cam_db, data::map_database* map_db,
+    map_database_io(data::camera_database* cam_db, imu::imu_database* imu_db, data::map_database* map_db,
                     data::bow_database* bow_db, data::bow_vocabulary* bow_vocab);
 
     /**
@@ -41,6 +45,8 @@ public:
 private:
     //! camera database
     data::camera_database* const cam_db_ = nullptr;
+    //! imu database
+    imu::imu_database* const imu_db_ = nullptr;
     //! map_database
     data::map_database* const map_db_ = nullptr;
     //! BoW database

@@ -4,8 +4,12 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/imu/imu_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/data/common.h"
+#include "openvslam/imu/config.h"
+#include "openvslam/imu/preintegrator.h"
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -148,7 +152,8 @@ void map_database::clear() {
     spdlog::info("clear map database");
 }
 
-void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::from_json(camera_database* cam_db, imu::imu_database* imu_db,
+                             bow_vocabulary* bow_vocab, bow_database* bow_db,
                              const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -177,7 +182,7 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_keyframe(cam_db, bow_vocab, bow_db, id, json_keyfrm);
+        register_keyframe(cam_db, imu_db, bow_vocab, bow_db, id, json_keyfrm);
     }
 
     // Step 3. Register 3D landmark point
@@ -238,7 +243,8 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
     }
 }
 
-void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::register_keyframe(camera_database* cam_db, imu::imu_database* imu_db,
+                                     bow_vocabulary* bow_vocab, bow_database* bow_db,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
     const auto src_frm_id = json_keyfrm.at("src_frm_id").get<unsigned int>();
@@ -286,6 +292,20 @@ void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bo
                                      num_keypts, keypts, undist_keypts, bearings, stereo_x_right, depths, descriptors,
                                      num_scale_levels, scale_factor, bow_vocab, bow_db, this);
 
+    // imu information
+    if (json_keyfrm.contains("imu_preintegrator_from_inertial_ref_keyfrm")) {
+        keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_ = eigen_alloc_shared<imu::preintegrator>(json_keyfrm.at("imu_preintegrator_from_inertial_ref_keyfrm"));
+    }
+    if (json_keyfrm.contains("velocity")) {
+        keyfrm->velocity_ = data::convert_json_to_matrix<Vec3_t>(json_keyfrm.at("velocity"));
+    }
+    if (json_keyfrm.contains("imu_bias")) {
+        keyfrm->imu_bias_ = imu::bias(json_keyfrm.at("imu_bias"));
+    }
+    if (json_keyfrm.contains("imu_config")) {
+        keyfrm->imu_config_ = imu_db->get_imu(json_keyfrm.at("imu_config"));
+    }
+
     // Append to map database
     assert(!keyframes_.count(id));
     keyframes_[keyfrm->id_] = keyfrm;
@@ -327,6 +347,14 @@ void map_database::register_graph(const unsigned int id, const nlohmann::json& j
     for (const auto loop_edge_id : loop_edge_ids) {
         assert(keyframes_.count(loop_edge_id));
         keyframes_.at(id)->graph_node_->add_loop_edge(keyframes_.at(loop_edge_id));
+    }
+
+    // inertial references
+    if (json_keyfrm.contains("inertial_ref_keyfrm")) {
+        keyframes_.at(id)->inertial_ref_keyfrm_ = keyframes_[json_keyfrm.at("inertial_ref_keyfrm")];
+    }
+    if (json_keyfrm.contains("inertial_referrer_keyfrm")) {
+        keyframes_.at(id)->inertial_referrer_keyfrm_ = keyframes_[json_keyfrm.at("inertial_referrer_keyfrm")];
     }
 }
 

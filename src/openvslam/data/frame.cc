@@ -20,10 +20,10 @@ std::atomic<unsigned int> frame::next_id_{0};
 
 frame::frame(const cv::Mat& img_gray, const double timestamp,
              feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
+             camera::base* camera, const float depth_thr, const std::shared_ptr<imu::config>& imu_config,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr), imu_config_(imu_config) {
     // Get ORB scale
     update_orb_info();
 
@@ -55,9 +55,9 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
 frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
              feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right,
              bow_vocabulary* bow_vocab, camera::base* camera, const float depth_thr,
-             const cv::Mat& mask)
+             const std::shared_ptr<imu::config>& imu_config, const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor_left), extractor_right_(extractor_right),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr), imu_config_(imu_config) {
     // Get ORB scale
     update_orb_info();
 
@@ -94,10 +94,10 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
 
 frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
              feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
+             camera::base* camera, const float depth_thr, const std::shared_ptr<imu::config>& imu_config,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr), imu_config_(imu_config) {
     // Get ORB scale
     update_orb_info();
 

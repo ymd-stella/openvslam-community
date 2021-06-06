@@ -24,6 +24,13 @@ void frame_statistics::update_frame_statistics(const data::frame& frm, const boo
     is_lost_frms_[frm.id_] = is_lost;
 }
 
+void frame_statistics::apply_scale(double scale) {
+    for (auto& id_and_rel_cam_pose : rel_cam_poses_from_ref_keyfrms_) {
+        const Mat44_t rel_cam_pose = id_and_rel_cam_pose.second;
+        id_and_rel_cam_pose.second.block<3, 1>(0, 3) = rel_cam_pose.block<3, 1>(0, 3) * scale;
+    }
+}
+
 void frame_statistics::replace_reference_keyframe(data::keyframe* old_keyfrm, data::keyframe* new_keyfrm) {
     // Delete keyframes and update associations.
 

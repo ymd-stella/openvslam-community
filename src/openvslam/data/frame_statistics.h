@@ -32,6 +32,12 @@ public:
     void update_frame_statistics(const data::frame& frm, const bool is_lost);
 
     /**
+     * Apply scale
+     * @param scale
+     */
+    void apply_scale(double scale);
+
+    /**
      * Replace a keyframe which will be erased in frame statistics
      * @param old_keyfrm
      * @param new_keyfrm

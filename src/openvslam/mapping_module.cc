@@ -8,6 +8,7 @@
 #include "openvslam/match/robust.h"
 #include "openvslam/module/two_view_triangulator.h"
 #include "openvslam/solve/essential_solver.h"
+#include "openvslam/imu/imu_initializer.h"
 #include "openvslam/imu/imu_util.h"
 
 #include <unordered_set>
@@ -194,9 +195,26 @@ void mapping_module::initialize_imu() {
     if (keyfrms.size() < min_keyfrms || cur_keyfrm_->timestamp_ - keyfrms.back()->timestamp_ < min_time) {
         return;
     }
+    spdlog::info("start imu initialization with {} keyframes", keyfrms.size());
 
     imu::imu_util::compute_velocity(keyfrms);
+
     Mat33_t Rwg = imu::imu_util::compute_gravity_dir(keyfrms);
+
+    double scale = 1.0;
+    const auto imu_initializer = optimize::imu_initializer(200);
+    const double info_prior_gyr = 1e2;
+    const double info_prior_acc = cur_keyfrm_->depth_is_avaliable() ? 1e5 : 1e10;
+    bool succeeded = imu_initializer.initialize(keyfrms, Rwg, scale, cur_keyfrm_->depth_is_avaliable(), info_prior_gyr, info_prior_acc);
+
+    if (!succeeded) {
+        return;
+    }
+
+    map_db_->apply_scale_and_gravity_direction(Rwg, scale);
+
+    imu_is_initialized_ = true;
+    spdlog::info("imu initialized");
 }
 
 void mapping_module::store_new_keyframe() {

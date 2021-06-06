@@ -416,5 +416,37 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
     json_landmarks = landmarks;
 }
 
+void map_database::apply_scale_and_gravity_direction(const Mat33_t& Rwg, const double scale) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+
+    // Body position (IMU) of first keyframe is fixed to (0,0,0)
+    Mat44_t Tgw = Mat44_t::Identity();
+    Tgw.block<3, 3>(0, 0) = Rwg.transpose();
+
+    for (auto& keyfrm_pair : keyframes_) {
+        auto& keyfrm = keyfrm_pair.second;
+
+        // set pose
+        Mat44_t Twc = keyfrm->get_cam_pose_inv();
+        Twc.block<3, 1>(0, 3) *= scale;
+        Mat44_t Tgc = Tgw * Twc;
+        Mat44_t Tcg = Mat44_t::Identity();
+        Tcg.block<3, 3>(0, 0) = Tgc.block<3, 3>(0, 0).transpose();
+        Tcg.block<3, 1>(0, 3) = -Tcg.block<3, 3>(0, 0) * Tgc.block<3, 1>(0, 3);
+        keyfrm->set_cam_pose(Tcg);
+
+        // set velocity
+        keyfrm->velocity_ = scale * Tgw.block<3, 3>(0, 0) * keyfrm->velocity_;
+    }
+
+    for (auto& lm_pair : landmarks_) {
+        auto& lm = lm_pair.second;
+        lm->set_pos_in_world(scale * Tgw.block<3, 3>(0, 0) * lm->get_pos_in_world());
+        lm->update_normal_and_depth();
+    }
+
+    frm_stats_.apply_scale(scale);
+}
+
 } // namespace data
 } // namespace openvslam

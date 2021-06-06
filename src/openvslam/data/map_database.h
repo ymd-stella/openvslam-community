@@ -170,6 +170,13 @@ public:
      */
     void to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks);
 
+    /**
+     * Apply scale and gravity direction
+     * @param Rwg
+     * @param scale
+     */
+    void apply_scale_and_gravity_direction(const Mat33_t& Rwg, const double scale);
+
     //! origin keyframe
     keyframe* origin_keyfrm_ = nullptr;
 

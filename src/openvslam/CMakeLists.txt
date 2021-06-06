@@ -187,6 +187,7 @@ install(DIRECTORY ${spdlog_INCLUDE_DIR}
 add_subdirectory(camera)
 add_subdirectory(data)
 add_subdirectory(feature)
+add_subdirectory(imu)
 add_subdirectory(initialize)
 add_subdirectory(io)
 add_subdirectory(match)

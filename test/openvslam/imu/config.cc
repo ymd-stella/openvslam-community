@@ -28,7 +28,7 @@ TEST(config, constructor) {
     // gyr bias random walk [(rad/s^2]/sqrt(Hz)]
     const double rw_gyr_bias = 0.006;
 
-    const auto cfg  = imu::config(name, rate_hz, rel_pose_ic, ns_acc, ns_gyr, rw_acc_bias, rw_gyr_bias);
+    const auto cfg = imu::config(name, rate_hz, rel_pose_ic, ns_acc, ns_gyr, rw_acc_bias, rw_gyr_bias);
 
     // check basic information
     EXPECT_EQ(cfg.get_name(), name);
@@ -88,7 +88,7 @@ TEST(config, covariance_update) {
     const double rw_acc_bias_1 = 0.001;
     const double rw_gyr_bias_1 = 0.006;
 
-    auto cfg  = imu::config(name, rate_hz, rel_pose_ic, ns_acc_1, ns_gyr_1, rw_acc_bias_1, rw_gyr_bias_1);
+    auto cfg = imu::config(name, rate_hz, rel_pose_ic, ns_acc_1, ns_gyr_1, rw_acc_bias_1, rw_gyr_bias_1);
 
     // check covariance
     for (int row = 0; row < 3; ++row) {
@@ -129,7 +129,7 @@ TEST(config, covariance_update) {
                 EXPECT_DOUBLE_EQ(cfg.get_gyr_bias_covariance()(row, col), 0.0);
             }
             else {
-                EXPECT_DOUBLE_EQ(cfg.get_acc_covariance()(row, col), ns_acc_2* ns_acc_2 * rate_hz);
+                EXPECT_DOUBLE_EQ(cfg.get_acc_covariance()(row, col), ns_acc_2 * ns_acc_2 * rate_hz);
                 EXPECT_DOUBLE_EQ(cfg.get_gyr_covariance()(row, col), ns_gyr_2 * ns_gyr_2 * rate_hz);
                 EXPECT_DOUBLE_EQ(cfg.get_acc_bias_covariance()(row, col), rw_acc_bias_2 * rw_acc_bias_2 * rate_hz);
                 EXPECT_DOUBLE_EQ(cfg.get_gyr_bias_covariance()(row, col), rw_gyr_bias_2 * rw_gyr_bias_2 * rate_hz);

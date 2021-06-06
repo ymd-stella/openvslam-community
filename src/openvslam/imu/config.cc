@@ -5,8 +5,8 @@ namespace imu {
 
 config::config(const std::string& name, const double rate_hz, const Mat44_t& rel_pose_ic,
                const double ns_acc, const double ns_gyr, const double rw_acc_bias, const double rw_gyr_bias)
-        : name_(name), rate_hz_(rate_hz), rate_dt_(1.0 / rate_hz), rel_pose_ic_(rel_pose_ic),
-          ns_acc_(ns_acc), ns_gyr_(ns_gyr), rw_acc_bias_(rw_acc_bias), rw_gyr_bias_(rw_gyr_bias) {
+    : name_(name), rate_hz_(rate_hz), rate_dt_(1.0 / rate_hz), rel_pose_ic_(rel_pose_ic),
+      ns_acc_(ns_acc), ns_gyr_(ns_gyr), rw_acc_bias_(rw_acc_bias), rw_gyr_bias_(rw_gyr_bias) {
     update_pose();
     update_covariance();
 }
@@ -53,7 +53,7 @@ void config::set_acc_noise_density(const double ns_acc) {
 }
 
 void config::set_gyr_noise_density(const double ns_gyr) {
-    ns_gyr_  = ns_gyr;
+    ns_gyr_ = ns_gyr;
     update_covariance();
 }
 

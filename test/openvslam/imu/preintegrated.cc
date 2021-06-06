@@ -3,6 +3,7 @@
 #include "openvslam/imu/config.h"
 #include "openvslam/imu/constant.h"
 #include "openvslam/imu/data.h"
+#include "openvslam/imu/imu_util.h"
 #include <iostream>
 #include <vector>
 
@@ -107,15 +108,10 @@ TEST(data, reintegrate_linear) {
 
     imu::preintegrator p(imu::bias(), cfg);
     for (unsigned int i = 0; i < imu_data.size() - 1; ++i) {
-        auto d1 = imu_data[i];
-        auto d2 = imu_data[i + 1];
-        Vec3_t acc1 = d1.acc_;
-        Vec3_t gyr1 = d1.gyr_;
-        Vec3_t acc2 = d2.acc_;
-        Vec3_t gyr2 = d2.gyr_;
-        double dt = d2.ts_ - d1.ts_;
-        Vec3_t acc = (acc1 + acc2) * 0.5;
-        Vec3_t gyr = (gyr1 + gyr2) * 0.5;
+        Vec3_t acc, gyr;
+        double dt;
+        imu::imu_util::preprocess_imu(imu_data[i], imu_data[i + 1],
+                                      acc, gyr, dt);
         p.measurements_.emplace_back(acc, gyr, dt);
     }
 
@@ -144,15 +140,10 @@ TEST(data, reintegrate_angular) {
 
     imu::preintegrator p(imu::bias(), cfg);
     for (unsigned int i = 0; i < imu_data.size() - 1; ++i) {
-        auto d1 = imu_data[i];
-        auto d2 = imu_data[i + 1];
-        Vec3_t acc1 = d1.acc_;
-        Vec3_t gyr1 = d1.gyr_;
-        Vec3_t acc2 = d2.acc_;
-        Vec3_t gyr2 = d2.gyr_;
-        double dt = d2.ts_ - d1.ts_;
-        Vec3_t acc = (acc1 + acc2) * 0.5;
-        Vec3_t gyr = (gyr1 + gyr2) * 0.5;
+        Vec3_t acc, gyr;
+        double dt;
+        imu::imu_util::preprocess_imu(imu_data[i], imu_data[i + 1],
+                                      acc, gyr, dt);
         p.measurements_.emplace_back(acc, gyr, dt);
     }
 

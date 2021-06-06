@@ -8,6 +8,7 @@
 #include "openvslam/match/robust.h"
 #include "openvslam/module/two_view_triangulator.h"
 #include "openvslam/solve/essential_solver.h"
+#include "openvslam/imu/imu_util.h"
 
 #include <unordered_set>
 #include <thread>
@@ -178,7 +179,24 @@ void mapping_module::mapping_with_new_keyframe() {
     if (2 < map_db_->get_num_keyframes()) {
         local_bundle_adjuster_->optimize(cur_keyfrm_, &abort_local_BA_);
     }
+
+    if (cur_keyfrm_->imu_config_ && !imu_is_initialized_ && !reset_is_requested_) {
+        initialize_imu();
+    }
+
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
+}
+
+void mapping_module::initialize_imu() {
+    auto keyfrms = imu::imu_util::gather_intertial_ref_keyframes(cur_keyfrm_);
+    const float min_time = cur_keyfrm_->depth_is_avaliable() ? 1.0 : 2.0;
+    const int min_keyfrms = 10;
+    if (keyfrms.size() < min_keyfrms || cur_keyfrm_->timestamp_ - keyfrms.back()->timestamp_ < min_time) {
+        return;
+    }
+
+    imu::imu_util::compute_velocity(keyfrms);
+    Mat33_t Rwg = imu::imu_util::compute_gravity_dir(keyfrms);
 }
 
 void mapping_module::store_new_keyframe() {
@@ -452,6 +470,7 @@ void mapping_module::reset() {
     keyfrms_queue_.clear();
     local_map_cleaner_->reset();
     reset_is_requested_ = false;
+    imu_is_initialized_ = false;
 }
 
 void mapping_module::request_pause() {

@@ -173,6 +173,14 @@ Mat44_t keyframe::get_cam_pose_inv() const {
     return cam_pose_wc_;
 }
 
+Mat44_t keyframe::get_imu_pose() const {
+    return imu_config_->get_rel_pose_ic() * get_cam_pose();
+}
+
+Mat44_t keyframe::get_imu_pose_inv() const {
+    return get_cam_pose_inv() * imu_config_->get_rel_pose_ci();
+}
+
 Vec3_t keyframe::get_cam_center() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
     return cam_center_;

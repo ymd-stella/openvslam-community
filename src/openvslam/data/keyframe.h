@@ -98,6 +98,16 @@ public:
     Mat44_t get_cam_pose_inv() const;
 
     /**
+     * Get the imu pose
+     */
+    Mat44_t get_imu_pose() const;
+
+    /**
+     * Get the inverse of the imu pose
+     */
+    Mat44_t get_imu_pose_inv() const;
+
+    /**
      * Get the camera center
      */
     Vec3_t get_cam_center() const;

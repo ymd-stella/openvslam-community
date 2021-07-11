@@ -83,11 +83,13 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
     feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
     const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
     extractor_left_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+    extractor_left_relocalization_ = new feature::orb_extractor(tracking_params["max_num_keypoints_relocalization"].as<unsigned int>(2000), orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
         ini_extractor_left_ = new feature::orb_extractor(tracking_params["ini_max_num_keypoints"].as<unsigned int>(4000), orb_params);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
         extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+        extractor_right_relocalization_ = new feature::orb_extractor(tracking_params["max_num_keypoints_relocalization"].as<unsigned int>(2000), orb_params);
     }
 }
 
@@ -98,6 +100,10 @@ tracking_module::~tracking_module() {
     extractor_right_ = nullptr;
     delete ini_extractor_left_;
     ini_extractor_left_ = nullptr;
+    delete extractor_left_relocalization_;
+    extractor_left_relocalization_ = nullptr;
+    delete extractor_right_relocalization_;
+    extractor_right_relocalization_ = nullptr;
 
     spdlog::debug("DESTRUCT: tracking_module");
 }
@@ -136,13 +142,20 @@ std::shared_ptr<Mat44_t> tracking_module::track_monocular_image(const cv::Mat& i
     img_gray_ = img;
     util::convert_to_grayscale(img_gray_, camera_->color_order_);
 
-    // create current frame object
+    // choose extractor
+    feature::orb_extractor* extractor_left;
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
-        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);
+        extractor_left = ini_extractor_left_;
+    }
+    else if (tracking_state_ == tracker_state_t::Lost) {
+        extractor_left = extractor_left_relocalization_;
     }
     else {
-        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);
+        extractor_left = extractor_left_;
     }
+
+    // create current frame object
+    curr_frm_ = data::frame(img_gray_, timestamp, extractor_left, bow_vocab_, camera_, true_depth_thr_, mask);
 
     track();
 
@@ -165,8 +178,20 @@ std::shared_ptr<Mat44_t> tracking_module::track_stereo_image(const cv::Mat& left
     util::convert_to_grayscale(img_gray_, camera_->color_order_);
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
+    // choose extractor
+    feature::orb_extractor* extractor_left;
+    feature::orb_extractor* extractor_right;
+    if (tracking_state_ == tracker_state_t::Lost) {
+        extractor_left = extractor_left_relocalization_;
+        extractor_left = extractor_right_relocalization_;
+    }
+    else {
+        extractor_left = extractor_left_;
+        extractor_right = extractor_right_;
+    }
+
     // create current frame object
-    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, true_depth_thr_, mask);
+    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left, extractor_right, bow_vocab_, camera_, true_depth_thr_, mask);
 
     track();
 
@@ -188,6 +213,14 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     cv::Mat img_depth = depthmap;
     util::convert_to_grayscale(img_gray_, camera_->color_order_);
     util::convert_to_true_depth(img_depth, depthmap_factor_);
+
+    feature::orb_extractor* extractor_left;
+    if (tracking_state_ == tracker_state_t::Lost) {
+        extractor_left = extractor_left_relocalization_;
+    }
+    else {
+        extractor_left = extractor_left_;
+    }
 
     // create current frame object
     curr_frm_ = data::frame(img_gray_, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);

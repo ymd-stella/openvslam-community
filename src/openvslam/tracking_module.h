@@ -188,6 +188,10 @@ protected:
     feature::orb_extractor* extractor_right_ = nullptr;
     //! ORB extractor only when used in initializing
     feature::orb_extractor* ini_extractor_left_ = nullptr;
+    //!
+    feature::orb_extractor* extractor_left_relocalization_ = nullptr;
+    //!
+    feature::orb_extractor* extractor_right_relocalization_ = nullptr;
 
     //! map_database
     data::map_database* map_db_ = nullptr;

@@ -19,9 +19,15 @@ public:
 
     image_bounds compute_image_bounds() const override final;
 
+    cv::Point2f undistort_point(const cv::Point2f& dist_pt) const override final {
+        return dist_pt;
+    }
+
     cv::KeyPoint undistort_keypoint(const cv::KeyPoint& distorted) const override final {
         return distorted;
     }
+
+    void undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const override final;
 
     void undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const override final;
 
@@ -40,6 +46,8 @@ public:
 
         return bearing;
     }
+
+    void convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const override final;
 
     void convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const override final;
 

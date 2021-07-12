@@ -139,14 +139,23 @@ public:
     //! Compute image boundaries according to camera model
     virtual image_bounds compute_image_bounds() const = 0;
 
+    //! Undistort point according to camera model
+    virtual cv::Point2f undistort_point(const cv::Point2f& dist_pt) const = 0;
+
     //! Undistort keypoint according to camera model
     virtual cv::KeyPoint undistort_keypoint(const cv::KeyPoint& dist_keypt) const = 0;
+
+    //! Undistort points according to camera model
+    virtual void undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const = 0;
 
     //! Undistort keypoints according to camera model
     virtual void undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const = 0;
 
     //! Convert undistorted keypoint to bearing vector
     virtual Vec3_t convert_keypoint_to_bearing(const cv::KeyPoint& undist_keypt) const = 0;
+
+    //! Convert undistorted points to bearing vectors
+    virtual void convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const = 0;
 
     //! Convert undistorted keypoints to bearing vectors
     virtual void convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const = 0;

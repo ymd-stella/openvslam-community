@@ -38,8 +38,25 @@ image_bounds equirectangular::compute_image_bounds() const {
     return image_bounds{0.0, cols_, 0.0, rows_};
 }
 
+void equirectangular::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    undist_pts = dist_pts;
+}
+
 void equirectangular::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
     undist_keypts = dist_keypts;
+}
+
+void equirectangular::convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    bearings.resize(undist_pts.size());
+    for (unsigned int idx = 0; idx < undist_pts.size(); ++idx) {
+        // convert to unit polar coordinates
+        const double lon = (undist_pts.at(idx).x / cols_ - 0.5) * (2 * M_PI);
+        const double lat = -(undist_pts.at(idx).y / rows_ - 0.5) * M_PI;
+        // convert to equirectangular coordinates
+        bearings.at(idx)(0) = std::cos(lat) * std::sin(lon);
+        bearings.at(idx)(1) = -std::sin(lat);
+        bearings.at(idx)(2) = std::cos(lat) * std::cos(lon);
+    }
 }
 
 void equirectangular::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {

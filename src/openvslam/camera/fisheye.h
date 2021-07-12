@@ -26,6 +26,25 @@ public:
 
     image_bounds compute_image_bounds() const override final;
 
+    cv::Point2f undistort_point(const cv::Point2f& dist_pt) const override final {
+        // fill cv::Mat with distorted point
+        cv::Mat mat(1, 2, CV_32F);
+        mat.at<float>(0, 0) = dist_pt.x;
+        mat.at<float>(0, 1) = dist_pt.y;
+
+        // undistort
+        mat = mat.reshape(2);
+        cv::fisheye::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_);
+        mat = mat.reshape(1);
+
+        // convert to cv::Mat
+        cv::Point2f undist_pt;
+        undist_pt.x = mat.at<float>(0, 0);
+        undist_pt.y = mat.at<float>(0, 1);
+
+        return undist_pt;
+    }
+
     cv::KeyPoint undistort_keypoint(const cv::KeyPoint& dist_keypt) const override final {
         // fill cv::Mat with distorted keypoints
         cv::Mat mat(1, 2, CV_32F);
@@ -48,6 +67,8 @@ public:
         return undist_keypt;
     }
 
+    void undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const override final;
+
     void undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypt, std::vector<cv::KeyPoint>& undist_keypt) const override final;
 
     Vec3_t convert_keypoint_to_bearing(const cv::KeyPoint& undist_keypt) const override final {
@@ -56,6 +77,8 @@ public:
         const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
         return Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
     }
+
+    void convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const override final;
 
     void convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypt, eigen_alloc_vector<Vec3_t>& bearings) const override final;
 

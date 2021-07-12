@@ -96,6 +96,34 @@ image_bounds perspective::compute_image_bounds() const {
     }
 }
 
+void perspective::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    // cv::undistortPoints does not accept an empty input
+    if (dist_pts.empty()) {
+        undist_pts.clear();
+        return;
+    }
+
+    // fill cv::Mat with distorted points
+    cv::Mat mat(dist_pts.size(), 2, CV_32F);
+    for (unsigned long idx = 0; idx < dist_pts.size(); ++idx) {
+        mat.at<float>(idx, 0) = dist_pts.at(idx).x;
+        mat.at<float>(idx, 1) = dist_pts.at(idx).y;
+    }
+
+    // undistort
+    mat = mat.reshape(2);
+    cv::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_,
+                        cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 20, 1e-6));
+    mat = mat.reshape(1);
+
+    // convert to cv::Mat
+    undist_pts.resize(dist_pts.size());
+    for (unsigned long idx = 0; idx < undist_pts.size(); ++idx) {
+        undist_pts.at(idx).x = mat.at<float>(idx, 0);
+        undist_pts.at(idx).y = mat.at<float>(idx, 1);
+    }
+}
+
 void perspective::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
     // cv::undistortPoints does not accept an empty input
     if (dist_keypts.empty()) {
@@ -124,6 +152,16 @@ void perspective::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keyp
         undist_keypts.at(idx).angle = dist_keypts.at(idx).angle;
         undist_keypts.at(idx).size = dist_keypts.at(idx).size;
         undist_keypts.at(idx).octave = dist_keypts.at(idx).octave;
+    }
+}
+
+void perspective::convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    bearings.resize(undist_pts.size());
+    for (unsigned long idx = 0; idx < undist_pts.size(); ++idx) {
+        const auto x_normalized = (undist_pts.at(idx).x - cx_) / fx_;
+        const auto y_normalized = (undist_pts.at(idx).y - cy_) / fy_;
+        const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
+        bearings.at(idx) = Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
     }
 }
 

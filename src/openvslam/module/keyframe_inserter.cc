@@ -1,5 +1,6 @@
 #include "openvslam/mapping_module.h"
 #include "openvslam/data/landmark.h"
+#include "openvslam/data/marker.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/module/keyframe_inserter.h"
@@ -89,6 +90,33 @@ data::keyframe* keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
 
     curr_frm.update_pose_params();
     auto keyfrm = new data::keyframe(curr_frm, map_db_, bow_db_);
+
+    eigen_alloc_vector<Vec3_t> corners_pos;
+    const double marker_length = 0.24;
+    corners_pos.resize(4);
+    corners_pos.at(0) << -marker_length / 2.0, marker_length / 2.0, 0.0;
+    corners_pos.at(1) << marker_length / 2.0, marker_length / 2.0, 0.0;
+    corners_pos.at(2) << marker_length / 2.0, -marker_length / 2.0, 0.0;
+    corners_pos.at(3) << -marker_length / 2.0, -marker_length / 2.0, 0.0;
+
+    for (const auto& id_marker2d : keyfrm->markers_2d_) {
+        const auto id = id_marker2d.first;
+        auto marker = map_db_->get_marker(id);
+        if (!marker) {
+            const auto& marker2d = id_marker2d.second;
+            eigen_alloc_vector<Vec3_t> corners_pos_w;
+            for (const Vec3_t& corner_pos : corners_pos) {
+                const Mat44_t cam_pose_wc = keyfrm->get_cam_pose_inv();
+                const Mat33_t rot_wc = cam_pose_wc.block<3, 3>(0, 0);
+                const Vec3_t trans_wc = cam_pose_wc.block<3, 1>(0, 3);
+                corners_pos_w.push_back(rot_wc * (marker2d.rot_cm_ * corner_pos + marker2d.trans_cm_) + trans_wc);
+            }
+            marker = new data::marker(corners_pos_w, id);
+            map_db_->add_marker(marker);
+        }
+        keyfrm->add_marker(marker);
+        marker->observations_.push_back(keyfrm);
+    }
 
     frm_id_of_last_keyfrm_ = curr_frm.id_;
 

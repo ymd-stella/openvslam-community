@@ -2,6 +2,7 @@
 
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
+#include "openvslam/data/marker.h"
 #include "openvslam/publish/frame_publisher.h"
 #include "openvslam/publish/map_publisher.h"
 
@@ -54,6 +55,9 @@ std::string data_serializer::serialize_map_diff() {
         map_publisher_->get_landmarks(all_landmarks, local_landmarks);
     }
 
+    std::vector<openvslam::data::marker*> all_markers;
+    map_publisher_->get_markers(all_markers);
+
     const auto current_camera_pose = map_publisher_->get_current_cam_pose();
 
     const double pose_hash = get_mat_hash(current_camera_pose);
@@ -63,7 +67,7 @@ std::string data_serializer::serialize_map_diff() {
     }
     current_pose_hash_ = pose_hash;
 
-    return serialize_as_protobuf(keyframes, all_landmarks, local_landmarks, current_camera_pose);
+    return serialize_as_protobuf(keyframes, all_landmarks, local_landmarks, all_markers, current_camera_pose);
 }
 
 std::string data_serializer::serialize_latest_frame(const unsigned int image_quality) {
@@ -79,6 +83,7 @@ std::string data_serializer::serialize_latest_frame(const unsigned int image_qua
 std::string data_serializer::serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                                    const std::vector<openvslam::data::landmark*>& all_landmarks,
                                                    const std::set<openvslam::data::landmark*>& local_landmarks,
+                                                   const std::vector<openvslam::data::marker*>& all_markers,
                                                    const openvslam::Mat44_t& current_camera_pose) {
     map_segment::map map;
     auto message = map.add_messages();
@@ -227,6 +232,21 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<openvslam::
 
     for (const auto landmark : local_landmarks) {
         map.add_local_landmarks(landmark->id_);
+    }
+
+    for (const auto marker : all_markers) {
+        const auto id = marker->id_;
+        const auto corners_pos_w = marker->corners_pos_w_;
+
+        // add to protocol buffers
+        auto marker_obj = map.add_markers();
+        marker_obj->set_id(id);
+        for (int i = 0; i < 4; i++) {
+            auto corner_obj = marker_obj->add_corners();
+            for (int j = 0; j < 3; j++) {
+                corner_obj->add_coords(corners_pos_w[i][j]);
+            }
+        }
     }
 
     // 5. current camera pose registration

@@ -12,6 +12,7 @@ class config;
 namespace data {
 class keyframe;
 class landmark;
+class marker;
 class map_database;
 } // namespace data
 
@@ -76,6 +77,8 @@ public:
      */
     unsigned int get_landmarks(std::vector<data::landmark*>& all_landmarks,
                                std::set<data::landmark*>& local_landmarks);
+
+    unsigned int get_markers(std::vector<data::marker*>& all_markers);
 
 private:
     //! config

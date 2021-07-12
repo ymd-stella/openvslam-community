@@ -17,6 +17,8 @@ public:
     //! constructor
     marker(const eigen_alloc_vector<Vec3_t>& corners_pos_w, unsigned int id);
 
+    void set_corner_pos(const Vec3_t& pos, unsigned int corner_id);
+
     //! corner positions
     eigen_alloc_vector<Vec3_t> corners_pos_w_;
 
@@ -25,6 +27,8 @@ public:
 
     //! observed keyframes
     std::vector<keyframe*> observations_;
+
+    mutable std::mutex mtx_position_;
 };
 
 } // namespace data

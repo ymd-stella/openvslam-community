@@ -34,6 +34,8 @@ let clock = new THREE.Clock();
 
 let cameraFrames = new CameraFrames();
 
+let markersView = new MarkersView();
+
 let pointUpdateFlag = false;
 let pointCloud = new PointCloud();
 
@@ -134,6 +136,8 @@ function render() {
 
     cameraFrames.updateFramesInScene(scene);
 
+    markersView.updateMarkersInScene(scene);
+
     //if(chase_camera == false){
     // 仮　トラックボールコントロール用
     let delta = clock.getDelta();
@@ -228,7 +232,7 @@ function array2mat44(mat, array) {
         mat.push(raw);
     }
 }
-function loadProtobufData(obj, keyframes, edges, points, referencePointIds, currentFramePose) {
+function loadProtobufData(obj, keyframes, edges, points, referencePointIds, markers, currentFramePose) {
     for (let keyframeObj of obj.keyframes) {
         let keyframe = {};
         keyframe["id"] = keyframeObj.id;
@@ -253,6 +257,14 @@ function loadProtobufData(obj, keyframes, edges, points, referencePointIds, curr
     for (let id of obj.localLandmarks) {
         referencePointIds.push(id);
     }
+    for (let markerObj of obj.markers) {
+        let marker = {};
+        marker["id"] = markerObj.id;
+        if (markerObj.corners.length != 0) {
+            marker["corners"] = markerObj.corners;
+        }
+        markers.push(marker);
+    }
     array2mat44(currentFramePose, obj.currentFrame.pose);
 
 }
@@ -276,6 +288,7 @@ function receiveProtobuf(msg) {
     let edges = [];
     let points = [];
     let referencePointIds = [];
+    let markers = [];
     let currentFramePose = [];
 
     let buffer = base64ToUint8Array(msg);
@@ -285,8 +298,8 @@ function receiveProtobuf(msg) {
         removeAllElements();
     }
     else {
-        loadProtobufData(obj, keyframes, edges, points, referencePointIds, currentFramePose);
-        updateMapElements(msg.length, keyframes, edges, points, referencePointIds, currentFramePose);
+        loadProtobufData(obj, keyframes, edges, points, referencePointIds, markers, currentFramePose);
+        updateMapElements(msg.length, keyframes, edges, points, referencePointIds, markers, currentFramePose);
     }
 }
 function base64ToUint8Array(base64) {
@@ -299,7 +312,7 @@ function base64ToUint8Array(base64) {
     return bytes;
 }
 
-function updateMapElements(msgSize, keyframes, edges, points, referencePointIds, currentFramePose) {
+function updateMapElements(msgSize, keyframes, edges, points, referencePointIds, markers, currentFramePose) {
     trackStats.update();
     cameraFrames.updateCurrentFrame(currentFramePose);
     viewControls.setCurrentIntrinsic(currentFramePose);
@@ -321,6 +334,15 @@ function updateMapElements(msgSize, keyframes, edges, points, referencePointIds,
             let g = point["rgb"][1];
             let b = point["rgb"][2];
             pointCloud.updatePoint(id, x, y, z, r, g, b);
+        }
+    }
+    for (let marker of markers) {
+        let id = marker["id"];
+        if (marker["corners"] == undefined) {
+            markersView.remove(id);
+        }
+        else {
+            markersView.update(id, marker["corners"]);
         }
     }
     for (let keyframe of keyframes) {

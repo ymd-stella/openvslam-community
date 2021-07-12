@@ -1,10 +1,13 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
+#include "openvslam/data/marker.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/optimize/local_bundle_adjuster.h"
 #include "openvslam/optimize/internal/landmark_vertex_container.h"
+#include "openvslam/optimize/internal/marker_vertex_container.h"
 #include "openvslam/optimize/internal/se3/shot_vertex_container.h"
 #include "openvslam/optimize/internal/se3/reproj_edge_wrapper.h"
+#include "openvslam/optimize/internal/distance_edge.h"
 #include "openvslam/util/converter.h"
 
 #include <unordered_map>
@@ -68,6 +71,25 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
         }
     }
 
+    // Correct markers seen in local keyframes
+    std::unordered_map<unsigned int, data::marker*> local_mkrs;
+
+    for (auto local_keyfrm : local_keyfrms) {
+        const auto markers = local_keyfrm.second->get_markers();
+        for (auto local_mkr : markers) {
+            if (!local_mkr) {
+                continue;
+            }
+
+            // Avoid duplication
+            if (local_mkrs.count(local_mkr->id_)) {
+                continue;
+            }
+
+            local_mkrs[local_mkr->id_] = local_mkr;
+        }
+    }
+
     // Fixed keyframes: keyframes which observe local landmarks but which are NOT in local keyframes
     std::unordered_map<unsigned int, data::keyframe*> fixed_keyfrms;
 
@@ -98,8 +120,8 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
 
     // 2. Construct an optimizer
 
-    auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
-    auto block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolverX::PoseMatrixType>>();
+    auto block_solver = g2o::make_unique<g2o::BlockSolverX>(std::move(linear_solver));
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
@@ -183,6 +205,77 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
                                                         inv_sigma_sq, sqrt_chi_sq);
             reproj_edge_wraps.push_back(reproj_edge_wrap);
             optimizer.addEdge(reproj_edge_wrap.edge_);
+        }
+    }
+
+    // Container of the landmark vertices
+    internal::marker_vertex_container marker_vtx_container(vtx_id_offset, local_mkrs.size());
+    std::vector<reproj_edge_wrapper> mkr_reproj_edge_wraps;
+    mkr_reproj_edge_wraps.reserve(all_keyfrms.size() * local_mkrs.size());
+
+    for (auto& id_local_mkr_pair : local_mkrs) {
+        auto mkr = id_local_mkr_pair.second;
+        if (!mkr) {
+            continue;
+        }
+
+        // Convert the corners to the g2o vertex, then set it to the optimizer
+        auto corner_vertices = marker_vtx_container.create_vertices(mkr, false);
+        // std::cout << "id: " << mkr->id_ << std::endl;
+        for (unsigned int corner_idx = 0; corner_idx < corner_vertices.size(); ++corner_idx) {
+            const auto corner_vtx = corner_vertices[corner_idx];
+            // const Vec3_t pos_w = corner_vtx->estimate();
+            // std::cout << "[" << pos_w[0] << ", " << pos_w[1] << ", " << pos_w[2] << "]" << std::endl;
+            optimizer.addVertex(corner_vtx);
+
+            for (const auto& keyfrm : mkr->observations_) {
+                // TODO: キーフレームの削除をしていないので、チェックしないとキーフレームがculling済みの場合がある
+                if (!keyfrm_vtx_container.contain(keyfrm)) {
+                    continue;
+                }
+                const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
+                const auto& undist_pt = keyfrm->markers_2d_.find(mkr->id_)->second.undist_corners_.at(corner_idx);
+                const float x_right = -1.0;
+                const float inv_sigma_sq = 1.0;
+                auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, nullptr, corner_vtx,
+                                                            0, undist_pt.x, undist_pt.y, x_right,
+                                                            inv_sigma_sq, 0.0, false);
+                mkr_reproj_edge_wraps.push_back(reproj_edge_wrap);
+                // reproj_edge_wrap.edge_->computeError();
+                // std::cout << "chi2: " << reproj_edge_wrap.edge_->chi2() << std::endl;
+                // std::cout << "error: " << Vec2_t{undist_pt.x, undist_pt.y} - ((internal::se3::equirectangular_reproj_edge*)reproj_edge_wrap.edge_)->cam_project(keyfrm_vtx->estimate().map(corner_vtx->estimate())) << std::endl;
+                optimizer.addEdge(reproj_edge_wrap.edge_);
+            }
+        }
+        // std::cout << std::endl;
+
+        double informationRatio = 1.0e6;
+        for (unsigned int corner_idx = 0; corner_idx < corner_vertices.size(); ++corner_idx) {
+            unsigned int next_corner_idx = (corner_idx + 1) % corner_vertices.size();
+            const auto dist_edge = new internal::distance_edge();
+            const double marker_length = 0.24;
+            dist_edge->setMeasurement(marker_length);
+            dist_edge->setInformation(MatRC_t<1, 1>::Identity() * informationRatio);
+
+            //debug
+            // const Vec3_t pos_w1 = corner_vertices[corner_idx]->estimate();
+            // const Vec3_t pos_w2 = corner_vertices[next_corner_idx]->estimate();
+            // std::cout << "distance: " << (pos_w1 - pos_w2).norm() << std::endl;
+
+            dist_edge->setVertex(0, corner_vertices[corner_idx]);
+            dist_edge->setVertex(1, corner_vertices[next_corner_idx]);
+            optimizer.addEdge(dist_edge);
+        }
+        for (unsigned int corner_idx = 0; corner_idx < 2; ++corner_idx) {
+            unsigned int next_corner_idx = (corner_idx + 2) % corner_vertices.size();
+            const auto dist_edge = new internal::distance_edge();
+            const double marker_length = 0.24;
+            const double diagonal_length = std::sqrt(2) * marker_length;
+            dist_edge->setMeasurement(diagonal_length);
+            dist_edge->setInformation(MatRC_t<1, 1>::Identity() * informationRatio);
+            dist_edge->setVertex(0, corner_vertices[corner_idx]);
+            dist_edge->setVertex(1, corner_vertices[next_corner_idx]);
+            optimizer.addEdge(dist_edge);
         }
     }
 
@@ -284,6 +377,31 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
             auto lm_vtx = lm_vtx_container.get_vertex(local_lm);
             local_lm->set_pos_in_world(lm_vtx->estimate());
             local_lm->update_normal_and_depth();
+        }
+
+        for (auto id_local_mkr_pair : local_mkrs) {
+            auto mkr = id_local_mkr_pair.second;
+            if (!mkr) {
+                continue;
+            }
+
+            // std::cout << "id: " << mkr->id_ << std::endl;
+            for (unsigned int corner_idx = 0; corner_idx < 4; ++corner_idx) {
+                auto corner_vtx = marker_vtx_container.get_vertex(mkr, corner_idx);
+                const Vec3_t pos_w = corner_vtx->estimate();
+                // std::cout << "[" << pos_w[0] << ", " << pos_w[1] << ", " << pos_w[2] << "]" << std::endl;
+                mkr->set_corner_pos(pos_w, corner_idx);
+            }
+
+            // for (unsigned int corner_idx = 0; corner_idx < 4; ++corner_idx) {
+            //     auto corner_vtx1 = marker_vtx_container.get_vertex(mkr, corner_idx);
+            //     unsigned int next_corner_idx = (corner_idx + 1) % 4;
+            //     auto corner_vtx2 = marker_vtx_container.get_vertex(mkr, next_corner_idx);
+            //     const Vec3_t pos_w1 = corner_vtx1->estimate();
+            //     const Vec3_t pos_w2 = corner_vtx2->estimate();
+            //     std::cout << "distance: " << (pos_w1 - pos_w2).norm() << std::endl;
+            // }
+            // std::cout << std::endl;
         }
     }
 }

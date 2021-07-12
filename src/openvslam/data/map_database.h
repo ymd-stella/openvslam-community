@@ -21,6 +21,7 @@ namespace data {
 class frame;
 class keyframe;
 class landmark;
+class marker;
 class camera_database;
 class bow_database;
 
@@ -59,6 +60,18 @@ public:
      * @param lm
      */
     void erase_landmark(landmark* lm);
+
+    /**
+     * Add marker to the database
+     * @param mkr
+     */
+    void add_marker(marker* mkr);
+
+    /**
+     * Erase marker from the database
+     * @param mkr
+     */
+    void erase_marker(marker* mkr);
 
     /**
      * Set local landmarks
@@ -106,6 +119,24 @@ public:
      * @return
      */
     unsigned int get_num_landmarks() const;
+
+    /**
+     * Get all of the markers in the database
+     * @return
+     */
+    std::vector<marker*> get_all_markers() const;
+
+    /**
+     * Get the number of markers
+     * @return
+     */
+    unsigned int get_num_markers() const;
+
+    /**
+     * Get marker
+     * @return marker
+     */
+    marker* get_marker(unsigned int id) const;
 
     /**
      * Get the maximum keyframe ID
@@ -219,6 +250,8 @@ private:
     std::unordered_map<unsigned int, keyframe*> keyframes_;
     //! IDs and landmarks
     std::unordered_map<unsigned int, landmark*> landmarks_;
+    //! IDs and markers
+    std::unordered_map<unsigned int, marker*> markers_;
 
     //! local landmarks
     std::vector<landmark*> local_landmarks_;

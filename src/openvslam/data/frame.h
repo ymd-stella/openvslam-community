@@ -242,9 +242,6 @@ public:
     //! markers 2D (ID to marker2d map)
     std::unordered_map<unsigned int, marker2d> markers_2d_;
 
-    //! markers 3D
-    std::vector<marker*> markers_;
-
     //! outlier flags, which are mainly used in pose optimization and bundle adjustment
     std::vector<bool> outlier_flags_;
 

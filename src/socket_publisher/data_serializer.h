@@ -16,6 +16,7 @@ class config;
 namespace data {
 class keyframe;
 class landmark;
+class marker;
 } // namespace data
 
 namespace publish {
@@ -62,6 +63,7 @@ private:
     std::string serialize_as_protobuf(const std::vector<openvslam::data::keyframe*>& keyfrms,
                                       const std::vector<openvslam::data::landmark*>& all_landmarks,
                                       const std::set<openvslam::data::landmark*>& local_landmarks,
+                                      const std::vector<openvslam::data::marker*>& all_markers,
                                       const openvslam::Mat44_t& current_camera_pose);
 
     std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);

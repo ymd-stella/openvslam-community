@@ -40,7 +40,6 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
 
     // Detect marker
     marker_detector_->detect(img_gray, markers_2d_);
-    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Ignore stereo parameters
     stereo_x_right_ = std::vector<float>(num_keypts_, -1);
@@ -81,7 +80,6 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
 
     // Detect marker
     marker_detector_->detect(left_img_gray, markers_2d_);
-    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Estimate depth with stereo match
     match::stereo stereo_matcher(extractor_left->image_pyramid_, extractor_right_->image_pyramid_,
@@ -122,7 +120,6 @@ frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double tim
 
     // Detect marker
     marker_detector_->detect(img_gray, markers_2d_);
-    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Calculate disparity from depth
     compute_stereo_from_depth(img_depth);

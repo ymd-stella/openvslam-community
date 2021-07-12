@@ -50,5 +50,10 @@ unsigned int map_publisher::get_landmarks(std::vector<data::landmark*>& all_land
     return map_db_->get_num_landmarks();
 }
 
+unsigned int map_publisher::get_markers(std::vector<data::marker*>& all_markers) {
+    all_markers = map_db_->get_all_markers();
+    return map_db_->get_num_markers();
+}
+
 } // namespace publish
 } // namespace openvslam

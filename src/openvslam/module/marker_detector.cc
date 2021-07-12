@@ -10,7 +10,7 @@ namespace module {
 marker_detector::marker_detector(const camera::base* camera, const unsigned int num_iter)
     : camera_(camera), num_iter_(num_iter) {
     parameters_ = cv::aruco::DetectorParameters::create();
-    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
+    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_7X7_50);
 }
 
 void marker_detector::detect(const cv::_InputArray& in_image, std::unordered_map<unsigned int, data::marker2d>& markers_2d) const {
@@ -27,7 +27,7 @@ void marker_detector::detect(const cv::_InputArray& in_image, std::unordered_map
     cv::aruco::detectMarkers(image, dictionary_, corners, ids, parameters_);
 
     eigen_alloc_vector<Vec3_t> corners_pos;
-    const double marker_length = 0.035;
+    const double marker_length = 0.24;
     corners_pos.resize(4);
     corners_pos.at(0) << -marker_length / 2.0, marker_length / 2.0, 0.0;
     corners_pos.at(1) << marker_length / 2.0, marker_length / 2.0, 0.0;

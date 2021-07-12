@@ -20,6 +20,15 @@ message map {
         repeated double color = 3;
     }
 
+    message corner {
+        repeated double coords = 1;
+    }
+
+    message marker {
+        uint32 id = 1;
+        repeated corner corners = 2;
+    }
+
     message Mat44 {
         repeated double pose = 1;
     }
@@ -34,5 +43,6 @@ message map {
     repeated edge edges = 3;
     repeated landmark landmarks = 4;
     repeated uint32 local_landmarks = 5;
-    repeated msg messages = 6;
+    repeated marker markers = 6;
+    repeated msg messages = 7;
 }

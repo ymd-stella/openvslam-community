@@ -3,6 +3,7 @@
 #include "openvslam/data/frame.h"
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
+#include "openvslam/data/marker.h"
 #include "openvslam/data/camera_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/util/converter.h"
@@ -49,6 +50,30 @@ void map_database::erase_landmark(landmark* lm) {
     landmarks_.erase(lm->id_);
 
     // TODO: delete object
+}
+
+void map_database::add_marker(marker* mkr) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    markers_[mkr->id_] = mkr;
+}
+
+void map_database::erase_marker(marker* mkr) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    markers_.erase(mkr->id_);
+
+    // TODO: delete object
+}
+
+marker* map_database::get_marker(unsigned int id) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    marker* mkr;
+    if (markers_.count(id) == 0) {
+        mkr = nullptr;
+    }
+    else {
+        mkr = markers_.at(id);
+    }
+    return mkr;
 }
 
 void map_database::set_local_landmarks(const std::vector<landmark*>& local_lms) {
@@ -117,6 +142,21 @@ std::vector<landmark*> map_database::get_all_landmarks() const {
 unsigned int map_database::get_num_landmarks() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     return landmarks_.size();
+}
+
+std::vector<marker*> map_database::get_all_markers() const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    std::vector<marker*> markers;
+    markers.reserve(markers_.size());
+    for (const auto id_marker : markers_) {
+        markers.push_back(id_marker.second);
+    }
+    return markers;
+}
+
+unsigned int map_database::get_num_markers() const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    return markers_.size();
 }
 
 unsigned int map_database::get_max_keyframe_id() const {

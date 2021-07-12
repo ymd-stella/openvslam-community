@@ -6,6 +6,7 @@
 #include "openvslam/data/frame.h"
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
+#include "openvslam/data/marker.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/feature/orb_params.h"
@@ -27,6 +28,7 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       num_keypts_(frm.num_keypts_), keypts_(frm.keypts_), undist_keypts_(frm.undist_keypts_), bearings_(frm.bearings_),
       keypt_indices_in_cells_(frm.keypt_indices_in_cells_),
       stereo_x_right_(frm.stereo_x_right_), depths_(frm.depths_), descriptors_(frm.descriptors_.clone()),
+      markers_2d_(frm.markers_2d_),
       // BoW
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       // covisibility graph node (connections is not assigned yet)
@@ -58,6 +60,8 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
       num_keypts_(num_keypts), keypts_(keypts), undist_keypts_(undist_keypts), bearings_(bearings),
       keypt_indices_in_cells_(assign_keypoints_to_grid(camera, undist_keypts)),
       stereo_x_right_(stereo_x_right), depths_(depths), descriptors_(descriptors.clone()),
+      // markers (TODO: Save and load markers_2d. Save and load markers in map_database. Should set the pointers of markers_)
+      // markers_2d_(markers_2d),
       // graph node (connections is not assigned yet)
       graph_node_(std::unique_ptr<graph_node>(new graph_node(this, false))),
       // ORB scale pyramid
@@ -67,6 +71,7 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
       inv_level_sigma_sq_(feature::orb_params::calc_inv_level_sigma_sq(num_scale_levels, scale_factor)),
       // others
       landmarks_(std::vector<landmark*>(num_keypts, nullptr)),
+      // markers (TODO: Save and load markers_2d. Save and load markers in map_database. Should set the pointers of markers_)
       // databases
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab) {
     // compute BoW (bow_vec_, bow_feat_vec_) using descriptors_
@@ -373,6 +378,21 @@ float keyframe::compute_median_depth(const bool abs) const {
 
 bool keyframe::depth_is_avaliable() const {
     return camera_->setup_type_ != camera::setup_type_t::Monocular;
+}
+
+void keyframe::add_marker(marker* mkr) {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    markers_[mkr->id_] = mkr;
+}
+
+std::vector<marker*> keyframe::get_markers() const {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    std::vector<marker*> markers;
+    markers.reserve(markers_.size());
+    for (const auto id_marker : markers_) {
+        markers.push_back(id_marker.second);
+    }
+    return markers;
 }
 
 void keyframe::set_not_to_be_erased() {

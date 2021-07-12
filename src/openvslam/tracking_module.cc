@@ -8,6 +8,7 @@
 #include "openvslam/data/map_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/feature/orb_extractor.h"
+#include "openvslam/module/marker_detector.h"
 #include "openvslam/match/projection.h"
 #include "openvslam/module/local_map_updater.h"
 #include "openvslam/util/image_converter.h"
@@ -89,6 +90,8 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
         extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
     }
+
+    marker_detector_ = new module::marker_detector(camera_);
 }
 
 tracking_module::~tracking_module() {
@@ -98,6 +101,8 @@ tracking_module::~tracking_module() {
     extractor_right_ = nullptr;
     delete ini_extractor_left_;
     ini_extractor_left_ = nullptr;
+    delete marker_detector_;
+    marker_detector_ = nullptr;
 
     spdlog::debug("DESTRUCT: tracking_module");
 }
@@ -138,10 +143,10 @@ std::shared_ptr<Mat44_t> tracking_module::track_monocular_image(const cv::Mat& i
 
     // create current frame object
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
-        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);
+        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, marker_detector_, bow_vocab_, camera_, true_depth_thr_, mask);
     }
     else {
-        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);
+        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, marker_detector_, bow_vocab_, camera_, true_depth_thr_, mask);
     }
 
     track();
@@ -166,7 +171,7 @@ std::shared_ptr<Mat44_t> tracking_module::track_stereo_image(const cv::Mat& left
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
     // create current frame object
-    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, true_depth_thr_, mask);
+    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left_, extractor_right_, marker_detector_, bow_vocab_, camera_, true_depth_thr_, mask);
 
     track();
 
@@ -190,7 +195,7 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     util::convert_to_true_depth(img_depth, depthmap_factor_);
 
     // create current frame object
-    curr_frm_ = data::frame(img_gray_, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask);
+    curr_frm_ = data::frame(img_gray_, img_depth, timestamp, extractor_left_, marker_detector_, bow_vocab_, camera_, true_depth_thr_, mask);
 
     track();
 

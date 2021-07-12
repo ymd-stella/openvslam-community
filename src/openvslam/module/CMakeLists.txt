@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/local_map_updater.h
                ${CMAKE_CURRENT_SOURCE_DIR}/loop_detector.h
                ${CMAKE_CURRENT_SOURCE_DIR}/loop_bundle_adjuster.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/marker_detector.h
                ${CMAKE_CURRENT_SOURCE_DIR}/initializer.cc
                ${CMAKE_CURRENT_SOURCE_DIR}/relocalizer.cc
                ${CMAKE_CURRENT_SOURCE_DIR}/frame_tracker.cc
@@ -18,7 +19,8 @@ target_sources(${PROJECT_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/local_map_cleaner.cc
                ${CMAKE_CURRENT_SOURCE_DIR}/local_map_updater.cc
                ${CMAKE_CURRENT_SOURCE_DIR}/loop_detector.cc
-               ${CMAKE_CURRENT_SOURCE_DIR}/loop_bundle_adjuster.cc)
+               ${CMAKE_CURRENT_SOURCE_DIR}/loop_bundle_adjuster.cc
+               ${CMAKE_CURRENT_SOURCE_DIR}/marker_detector.cc)
 
 # Install headers
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")

@@ -28,6 +28,10 @@ namespace feature {
 class orb_extractor;
 } // namespace feature
 
+namespace module {
+class marker_detector;
+} // namespace module
+
 // tracker state
 enum class tracker_state_t {
     NotInitialized,
@@ -188,6 +192,9 @@ protected:
     feature::orb_extractor* extractor_right_ = nullptr;
     //! ORB extractor only when used in initializing
     feature::orb_extractor* ini_extractor_left_ = nullptr;
+
+    //! marker detector
+    module::marker_detector* marker_detector_ = nullptr;
 
     //! map_database
     data::map_database* map_db_ = nullptr;

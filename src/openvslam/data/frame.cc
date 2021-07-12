@@ -7,6 +7,7 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/feature/orb_extractor.h"
+#include "openvslam/module/marker_detector.h"
 #include "openvslam/match/stereo.h"
 
 #include <thread>
@@ -19,11 +20,11 @@ namespace data {
 std::atomic<unsigned int> frame::next_id_{0};
 
 frame::frame(const cv::Mat& img_gray, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
+             feature::orb_extractor* extractor, module::marker_detector* detector,
+             bow_vocabulary* bow_vocab, camera::base* camera, const float depth_thr,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      marker_detector_(detector), timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
     // Get ORB scale
     update_orb_info();
 
@@ -36,6 +37,10 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
 
     // Undistort keypoints
     camera_->undistort_keypoints(keypts_, undist_keypts_);
+
+    // Detect marker
+    marker_detector_->detect(img_gray, markers_2d_);
+    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Ignore stereo parameters
     stereo_x_right_ = std::vector<float>(num_keypts_, -1);
@@ -54,10 +59,10 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
 
 frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
              feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right,
-             bow_vocabulary* bow_vocab, camera::base* camera, const float depth_thr,
-             const cv::Mat& mask)
+             module::marker_detector* detector, bow_vocabulary* bow_vocab, camera::base* camera,
+             const float depth_thr, const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor_left), extractor_right_(extractor_right),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      marker_detector_(detector), timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
     // Get ORB scale
     update_orb_info();
 
@@ -73,6 +78,10 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
 
     // Undistort keypoints
     camera_->undistort_keypoints(keypts_, undist_keypts_);
+
+    // Detect marker
+    marker_detector_->detect(left_img_gray, markers_2d_);
+    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Estimate depth with stereo match
     match::stereo stereo_matcher(extractor_left->image_pyramid_, extractor_right_->image_pyramid_,
@@ -93,11 +102,11 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
 }
 
 frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
+             feature::orb_extractor* extractor, module::marker_detector* detector,
+             bow_vocabulary* bow_vocab, camera::base* camera, const float depth_thr,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
+      marker_detector_(detector), timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
     // Get ORB scale
     update_orb_info();
 
@@ -110,6 +119,10 @@ frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double tim
 
     // Undistort keypoints
     camera_->undistort_keypoints(keypts_, undist_keypts_);
+
+    // Detect marker
+    marker_detector_->detect(img_gray, markers_2d_);
+    markers_ = std::vector<marker*>(markers_2d_.size(), nullptr);
 
     // Calculate disparity from depth
     compute_stereo_from_depth(img_depth);

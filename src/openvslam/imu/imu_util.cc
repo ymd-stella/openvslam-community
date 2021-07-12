@@ -110,8 +110,6 @@ Mat33_t imu_util::compute_gravity_dir(std::vector<openvslam::data::keyframe*>& k
     Vec3_t integrated_gravity = Vec3_t::Zero();
     for (auto iter = keyfrms.cbegin(); iter != keyfrms.cend() - 1; ++iter) {
         auto keyfrm = *iter;
-        const Mat44_t pose1_wi = keyfrm->inertial_ref_keyfrm_->get_imu_pose_inv();
-        const Mat33_t Rwi1 = pose1_wi.block<3, 3>(0, 0);
         integrated_gravity += compute_gravity(keyfrm);
     }
 

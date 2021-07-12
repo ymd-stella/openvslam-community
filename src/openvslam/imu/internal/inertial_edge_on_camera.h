@@ -123,14 +123,16 @@ inline void inertial_edge_on_camera::linearizeOplus() {
     const Mat33_t inv_right_jacobian = util::converter::inverse_right_jacobian_so3(util::converter::log_so3(error_rotation));
     const double dt = _measurement->dt_;
 
+    const Mat33_t rel_rot_ci = cfg_->get_rel_rot_ic().transpose();
+    const Mat33_t rel_rot_ic = cfg_->get_rel_rot_ic();
     // Jacobians wrt Pose 1
     _jacobianOplus[0].setZero();
     // rotation
-    _jacobianOplus[0].block<3, 3>(0, 0) = -inv_right_jacobian * Riw2 * Rwi1;
-    _jacobianOplus[0].block<3, 3>(3, 0) = util::converter::to_skew_symmetric_mat(Riw1 * (v2 - v1 - gravity * dt));
-    _jacobianOplus[0].block<3, 3>(6, 0) = util::converter::to_skew_symmetric_mat(Riw1 * (twi2 - twi1 - v1 * dt - 0.5 * gravity * dt * dt));
+    _jacobianOplus[0].block<3, 3>(0, 0) = -inv_right_jacobian * Riw2 * Rwi1 * rel_rot_ic;
+    _jacobianOplus[0].block<3, 3>(3, 0) = util::converter::to_skew_symmetric_mat(Riw1 * (v2 - v1 - gravity * dt)) * rel_rot_ic;
+    _jacobianOplus[0].block<3, 3>(6, 0) = util::converter::to_skew_symmetric_mat(Riw1 * (twi2 - twi1 - v1 * dt - 0.5 * gravity * dt * dt)) * rel_rot_ic;
     // translation
-    _jacobianOplus[0].block<3, 3>(6, 3) = -Eigen::Matrix3d::Identity();
+    _jacobianOplus[0].block<3, 3>(6, 3) = -Eigen::Matrix3d::Identity() * rel_rot_ic;
 
     // Jacobians wrt Velocity 1
     _jacobianOplus[1].setZero();
@@ -152,9 +154,9 @@ inline void inertial_edge_on_camera::linearizeOplus() {
     // Jacobians wrt Pose 2
     _jacobianOplus[4].setZero();
     // rotation
-    _jacobianOplus[4].block<3, 3>(0, 3) = inv_right_jacobian;
+    _jacobianOplus[4].block<3, 3>(0, 3) = inv_right_jacobian * rel_rot_ic;
     // translation
-    _jacobianOplus[4].block<3, 3>(6, 0) = Riw1 * Rwi2;
+    _jacobianOplus[4].block<3, 3>(6, 0) = Riw1 * Rwi2 * rel_rot_ic;
 
     // Jacobians wrt Velocity 2
     _jacobianOplus[5].setZero();

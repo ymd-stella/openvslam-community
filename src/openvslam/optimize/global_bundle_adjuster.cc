@@ -46,6 +46,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
         block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
     }
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
+    algorithm->setUserLambdaInit(1e-5);
 
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(algorithm);

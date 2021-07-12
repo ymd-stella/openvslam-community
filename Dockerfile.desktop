@@ -110,6 +110,9 @@ RUN set -x && \
   wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
   unzip -q ${OPENCV_VERSION}.zip && \
   rm -rf ${OPENCV_VERSION}.zip && \
+  wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.zip -O opencv_contrib-${OPENCV_VERSION}.zip && \
+  unzip opencv_contrib-${OPENCV_VERSION}.zip && \
+  rm -rf opencv_contrib-${OPENCV_VERSION}.zip && \
   cd opencv-${OPENCV_VERSION} && \
   mkdir -p build && \
   cd build && \
@@ -131,6 +134,7 @@ RUN set -x && \
     -DWITH_EIGEN=ON \
     -DWITH_FFMPEG=ON \
     -DWITH_OPENMP=ON \
+    -DOPENCV_EXTRA_MODULES_PATH=/tmp/opencv_contrib-${OPENCV_VERSION}/modules \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
